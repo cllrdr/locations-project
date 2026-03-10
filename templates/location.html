@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kurenaido&display=swap" rel="stylesheet">
+    <title>{{ .location.Name }}</title>
+    <link rel="stylesheet" href="/static/styles/styles.css">
+</head>
+<body>
+
+<div class="container">
+
+    <header class="header">
+        <a href="/all-locations"><button class="nav-button">Все локации</button></a>
+    </header>
+
+    <div class="reel-wrapper">
+        <video autoplay muted loop playsinline>
+            <source src="/static/{{ .location.VideoPath }}" type="video/mp4">
+        </video>
+        
+        <div class="reel-players">
+            <span class="players-icon">👥</span>
+            <span class="players-count">{{ .location.Players }}</span>
+        </div>
+        
+        <div class="reel-info">
+            <h2 class="reel-title">{{ .location.Name }}</h2>
+            <p class="reel-description">{{ .location.Description }}</p>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

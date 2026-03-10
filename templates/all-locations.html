@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kurenaido&display=swap" rel="stylesheet">
+    <title>Все локации</title>
+    <link rel="stylesheet" href="/static/styles/styles.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <header class="header">
+        <a href="/all-locations"><button class="nav-button">Все локации</button></a>
+    </header>
+
+    <form action="/all-locations" method="GET" class="search-form">
+        <input type="text" name="query" class="search-input" placeholder="Поиск локации..." value="{{ .query }}">
+    </form>
+
+    <div class="cards-grid">
+        {{ range .locations }}
+        <div class="card" onclick="location.href='/location/{{ .ID }}'">
+            <img src="/static/{{ .ImagePath }}" class="card-image">
+            <div class="card-content">
+                <div class="card-title">{{ .Name }}</div>
+                <div class="card-description">{{ .Description }}</div>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+
+</div>
+
+<a href="/fav-locations" class="favorites-float"><img src="/static/img/basket.jpg" alt="Мои предпочтения"></a>
+
+</body>
+</html>

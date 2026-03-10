@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kurenaido&display=swap" rel="stylesheet">
+    <title>Мои предпочтения</title>
+    <link rel="stylesheet" href="/static/styles/styles.css">
+</head>
+<body>
+
+<div class="container">
+
+    <header class="header">
+        <a href="/all-locations"><button class="nav-button">Все локации</button></a>
+    </header>
+
+    <div class="favorites-content">
+        <h1>Мои предпочтения</h1>
+    </div>
+    
+
+    <div class="favorites-list">
+        <div class="favorite-row favorite-header">
+            <div class="favorite-image-header">Локация</div>
+            <div class="favorite-name-header">Название</div>
+            <div class="favorite-description-header">Описание</div>
+            <div class="favorite-extra-header">Дополнительное поле</div>
+        </div>
+
+        <div class="favorite-row">
+            <div class="favorite-image">
+                <img src="/static/{{ .location.ImagePath }}">
+            </div>
+            <div class="favorite-name">{{ .location.Name }}</div>
+            <div class="favorite-description">{{ .location.Description }}</div>
+            <div class="favorite-extra">Заполняет игрок</div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

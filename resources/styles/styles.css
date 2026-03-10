@@ -1,13 +1,13 @@
 /* ===== VARIABLES ===== */
 :root {
     --border-radius: 3px;
-    --bg-color: #272b36;
-    --border-color: #272b36;
+    --bg-color: #25262b;
+    --border-color: #25262b;
     --bg-hover: #353557;
     --text-white: #ffffff;
     --accent-blue: #3f8cff;
     --accent-blue-hover: #66aaff;
-    --bg-page: #10101B;
+    --bg-page: #17171f;
 }
 
 /* ===== RESET ===== */

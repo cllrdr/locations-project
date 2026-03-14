@@ -74,15 +74,14 @@ func (r *Repository) GetLocations() ([]Location, error) {
 }
 
 func (r *Repository) GetLocation(id int) (Location, error) {
-	// тут у вас будет логика получения нужной услуги, тоже наверное через цикл в первой лабе, и через запрос к БД начиная со второй
 	locations, err := r.GetLocations()
 	if err != nil {
-		return Location{}, err // тут у нас уже есть кастомная ошибка из нашего метода, поэтому мы можем просто вернуть ее
+		return Location{}, err
 	}
 
 	for _, location := range locations {
 		if location.ID == id {
-			return location, nil // если нашли, то просто возвращаем найденную локацию без ошибок
+			return location, nil
 		}
 	}
 	return Location{}, fmt.Errorf("локация не найдена") // тут нужна кастомная ошибка, чтобы понимать на каком этапе возникла ошибка и что произошло

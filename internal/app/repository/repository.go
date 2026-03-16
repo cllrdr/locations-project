@@ -84,7 +84,7 @@ func (r *Repository) GetLocation(id int) (Location, error) {
 			return location, nil
 		}
 	}
-	return Location{}, fmt.Errorf("локация не найдена") // тут нужна кастомная ошибка, чтобы понимать на каком этапе возникла ошибка и что произошло
+	return Location{}, fmt.Errorf("локация не найдена")
 }
 
 func (r *Repository) GetLocationsByName(name string) ([]Location, error) {
@@ -101,4 +101,64 @@ func (r *Repository) GetLocationsByName(name string) ([]Location, error) {
 	}
 
 	return result, nil
+}
+
+type PlayersLocationRequest struct {
+	ID   int
+	Nickname string
+}
+
+type PlayersChosenLocations struct {
+	RequestID int
+	LocationID  int
+	Priority  int
+}
+
+var playersLocationRequests = map[PlayersLocationRequest][]PlayersChosenLocations{
+	{ID: 1, Nickname: "Player_Alpha"}: {
+		{
+			RequestID:  1,
+			LocationID: 2,
+			Priority:   1,
+		},
+		{
+			RequestID:  1,
+			LocationID: 3,
+			Priority:   2,
+		},
+		{
+			RequestID:  1,
+			LocationID: 4,
+			Priority:   3,
+		},
+	},
+	{ID: 2, Nickname: "Player_Beta"}: {
+		{
+			RequestID:  2,
+			LocationID: 2,
+			Priority:   1,
+		},
+		{
+			RequestID:  2,
+			LocationID: 4,
+			Priority:   2,
+		},
+	},
+	{ID: 3, Nickname: "Player_Gamma"}: {
+		{
+			RequestID:  3,
+			LocationID: 5,
+			Priority:   1,
+		},
+	},
+}
+
+
+func (r *Repository) GetPlayersLocationsForRequest(requestID int) (PlayersLocationRequest, []PlayersChosenLocations, error) {
+	for req, locations := range playersLocationRequests {
+		if req.ID == requestID {
+			return req, locations, nil
+		}
+	}
+	return PlayersLocationRequest{}, nil, fmt.Errorf("запрос с ID %d не найден", requestID)
 }

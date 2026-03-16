@@ -92,8 +92,8 @@ body {
 }
 
 .favorites-float img {
-    width: 64px;
-    height: 64px;
+    width: 120px;
+    height: 120px;
     object-fit: contain;
     border-radius: 50%;
     transition: transform 0.2s ease, opacity 0.2s ease;

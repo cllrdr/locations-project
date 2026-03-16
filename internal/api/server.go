@@ -30,7 +30,7 @@ func StartServer() {
 
   r.GET("/all-locations", handler.GetLocations)
   r.GET("/location/:id", handler.GetLocation)
-  r.GET("/fav-locations", handler.GetFavorites)
+  r.GET("/fav-locations/:id", handler.GetPlayersLocations)
 
   r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
   log.Println("Server down")

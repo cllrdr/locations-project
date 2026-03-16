@@ -71,3 +71,31 @@ func (h *Handler) GetFavorites(ctx *gin.Context) {
 		"location": location,
 	})
 }
+
+func (h *Handler) GetPlayersLocations(ctx *gin.Context) {
+	idRequest := ctx.Param("id")
+	id, err := strconv.Atoi(idRequest)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	request, chosenLocations, err := h.Repository.GetPlayersLocationsForRequest(id)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	locations, err := h.Repository.GetLocations()
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	ctx.HTML(http.StatusOK, "fav-locations.html", gin.H{
+		"playerRequest":   request,
+		"chosenLocations": chosenLocations,
+		"locations":       locations,
+	})
+}
+
+

@@ -5,7 +5,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Zen+Kurenaido&display=swap" rel="stylesheet">
-    <title>Мои предпочтения</title>
+    <title>Запрос #{{ .playerRequest.ID }} - {{ .playerRequest.Nickname }}</title>
     <link rel="stylesheet" href="/static/styles/styles.css">
 </head>
 <body>
@@ -17,26 +17,35 @@
     </header>
 
     <div class="favorites-content">
-        <h1>Мои предпочтения</h1>
+        <h1>Запрос локаций #{{ .playerRequest.ID }}</h1>
+        <p class="player-nickname">Игрок: {{ .playerRequest.Nickname }}</p>
     </div>
-    
+
 
     <div class="favorites-list">
         <div class="favorite-row favorite-header">
             <div class="favorite-image-header">Локация</div>
             <div class="favorite-name-header">Название</div>
             <div class="favorite-description-header">Описание</div>
-            <div class="favorite-extra-header">Дополнительное поле</div>
+            <div class="favorite-extra-header">Приоритет</div>
         </div>
 
+        {{ range .chosenLocations }}
+        {{ $locationID := .LocationID }}
+        {{ $priority := .Priority }}
+        {{ range $.locations }}
+        {{ if eq .ID $locationID }}
         <div class="favorite-row">
             <div class="favorite-image">
-                <img src="{{ .location.ImagePath }}">
+                <img src="{{ .ImagePath }}">
             </div>
-            <div class="favorite-name">{{ .location.Name }}</div>
-            <div class="favorite-description">{{ .location.Description }}</div>
-            <div class="favorite-extra">Заполняет игрок</div>
+            <div class="favorite-name">{{ .Name }}</div>
+            <div class="favorite-description">{{ .Description }}</div>
+            <div class="favorite-extra">{{ $priority }}</div>
         </div>
+        {{ end }}
+        {{ end }}
+        {{ end }}
     </div>
 
 </div>

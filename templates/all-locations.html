@@ -25,7 +25,7 @@
     <div class="cards-grid">
         {{ range .locations }}
         <div class="card" onclick="location.href='/location/{{ .ID }}'">
-            <img src="{{ .ImagePath }}" class="card-image">
+            <img src="{{ .ImagePath.String }}" class="card-image">
             <div class="card-content">
                 <div class="card-title">{{ .Name }}</div>
                 <div class="card-description">{{ .Description }}</div>

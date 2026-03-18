@@ -37,7 +37,7 @@
         {{ if eq .ID $locationID }}
         <div class="favorite-row">
             <div class="favorite-image">
-                <img src="{{ .ImagePath }}">
+                <img src="{{ .ImagePath.String }}">
             </div>
             <div class="favorite-name">{{ .Name }}</div>
             <div class="favorite-description">{{ .Description }}</div>

@@ -1,101 +1,39 @@
 package handler
 
 import (
-  "github.com/gin-gonic/gin"
-  "github.com/sirupsen/logrus"
-  "locations-project/internal/app/repository"
-  "strconv"
-  "net/http"
-  "time"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	"locations-project/internal/app/repository"
 )
 
 type Handler struct {
-  Repository *repository.Repository
+	Repository *repository.Repository
 }
 
 func NewHandler(r *repository.Repository) *Handler {
-  return &Handler{
-    Repository: r,
-  }
+	return &Handler{
+		Repository: r,
+	}
 }
 
-func (h *Handler) GetLocations(ctx *gin.Context) {
-	var locations []repository.Location
-	var err error
+// RegisterHandler Функция, в которой мы отдельно регистрируем маршруты, чтобы не писать все в одном месте
+func (h *Handler) RegisterHandler(router *gin.Engine) {
+    router.GET("/all-locations", h.GetLocations)
+    router.GET("/location/:id", h.GetLocation)
+    router.GET("/fav-locations/:id", h.GetPlayersLocations)
+}
 
-	searchLocation := ctx.Query("location-search") 
-	if searchLocation == "" {
-		locations, err = h.Repository.GetLocations()
-		if err != nil {
-			logrus.Error(err)
-		}
-	} else {
-		locations, err = h.Repository.GetLocationsByName(searchLocation)
-		if err != nil {
-			logrus.Error(err)
-		}
-	}
+// RegisterStatic То же самое, что и с маршрутами, регистрируем статику
+func (h *Handler) RegisterStatic(router *gin.Engine) {
+	router.LoadHTMLGlob("templates/*")
+	router.Static("/static", "./resources")
+}
 
-	ctx.HTML(http.StatusOK, "all-locations.html", gin.H{
-		"time": time.Now().Format("15:04:05"),
-		"locations": locations,
-		"query": searchLocation,
+// errorHandler для более удобного вывода ошибок
+func (h *Handler) errorHandler(ctx *gin.Context, errorStatusCode int, err error) {
+	logrus.Error(err.Error())
+	ctx.JSON(errorStatusCode, gin.H{
+		"status":      "error",
+		"description": err.Error(),
 	})
 }
-
-func (h *Handler) GetLocation(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	location, err := h.Repository.GetLocation(id)
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	ctx.HTML(http.StatusOK, "location.html", gin.H{
-		"location": location,
-	})
-}
-
-func (h *Handler) GetFavorites(ctx *gin.Context) {
-	// получаем локацию с ID=3
-	location, err := h.Repository.GetLocation(3)
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	ctx.HTML(http.StatusOK, "fav-locations.html", gin.H{
-		"location": location,
-	})
-}
-
-func (h *Handler) GetPlayersLocations(ctx *gin.Context) {
-	idRequest := ctx.Param("id")
-	id, err := strconv.Atoi(idRequest)
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
-	request, chosenLocations, err := h.Repository.GetPlayersLocationsForRequest(id)
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
-	locations, err := h.Repository.GetLocations()
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	ctx.HTML(http.StatusOK, "fav-locations.html", gin.H{
-		"playerRequest":   request,
-		"chosenLocations": chosenLocations,
-		"locations":       locations,
-	})
-}
-
-

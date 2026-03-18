@@ -1,9 +1,6 @@
 package repository
 
 import (
-   "fmt"
-   "strings"
-
    "gorm.io/driver/postgres"
    "gorm.io/gorm"
 )

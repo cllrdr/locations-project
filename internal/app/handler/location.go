@@ -1,0 +1,78 @@
+package handler
+
+import (
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	"locations-project/internal/app/ds"
+)
+
+func (h *Handler) GetLocations(ctx *gin.Context) {
+	var locations []ds.Location
+	var err error
+
+	searchLocation := ctx.Query("location-search")
+	if searchLocation == "" {
+		locations, err = h.Repository.GetLocations()
+		if err != nil {
+			logrus.Error(err)
+		}
+	} else {
+		locations, err = h.Repository.GetLocationsByName(searchLocation)
+		if err != nil {
+			logrus.Error(err)
+		}
+	}
+
+	ctx.HTML(http.StatusOK, "all-locations.html", gin.H{
+		"time": time.Now().Format("15:04:05"),
+		"locations": locations,
+		"query": searchLocation,
+	})
+}
+
+func (h *Handler) GetLocation(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	location, err := h.Repository.GetLocation(id)
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	ctx.HTML(http.StatusOK, "location.html", gin.H{
+		"location": location,
+	})
+}
+
+func (h *Handler) GetPlayersLocations(ctx *gin.Context) {
+	idRequest := ctx.Param("id")
+	id, err := strconv.Atoi(idRequest)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	request, chosenLocations, err := h.Repository.GetPlayersLocationsForRequest(id)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	locations, err := h.Repository.GetLocations()
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	ctx.HTML(http.StatusOK, "fav-locations.html", gin.H{
+		"playerRequest":   request,
+		"chosenLocations": chosenLocations,
+		"locations":       locations,
+	})
+}

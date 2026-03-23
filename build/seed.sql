@@ -1,5 +1,6 @@
 -- Seed data для locations-project
-
+ALTER DATABASE "locations-project" SET timezone TO 'Europe/Moscow';
+SELECT pg_reload_conf();
 -- Локации
 INSERT INTO locations (id, name, description, image_path, video_path, players) VALUES
 (1, 'Тирсфальские леса', 'Заброшенные леса Лордерона с богатыми залежами золота и лесными угодьями.', 'http://localhost:9000/locations-images/map1.jpg', 'http://localhost:9000/locations-videos/map1.mp4', '3-6'),

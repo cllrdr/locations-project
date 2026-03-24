@@ -27,10 +27,21 @@ func (h *Handler) GetLocations(ctx *gin.Context) {
 		}
 	}
 
+	// Получаем информацию о черновике заявки
+	draftRequest, chosenLocations, err := h.Repository.GetDraftRequestInfo()
+	var draftRequestID uint = 0
+	var locationsCount int64 = 0
+	if err == nil {
+		draftRequestID = draftRequest.ID
+		locationsCount = int64(len(chosenLocations))
+	}
+
 	ctx.HTML(http.StatusOK, "all-locations.html", gin.H{
-		"time": time.Now().Format("15:04:05"),
-		"locations": locations,
-		"query": searchLocation,
+		"time":           time.Now().Format("15:04:05"),
+		"locations":      locations,
+		"query":          searchLocation,
+		"draftRequestID": draftRequestID,
+		"locationsCount": locationsCount,
 	})
 }
 

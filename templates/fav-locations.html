@@ -18,7 +18,7 @@
 
     <div class="favorites-content">
         <h1>Запрос локаций #{{ .playerRequest.ID }}</h1>
-        <p class="player-nickname">Игрок: {{ .playerRequest.Nickname }}</p>
+        <p class="player-nickname">Игрок: {{ .playerRequest.Creator.Name }}</p>
     </div>
 
 
@@ -47,6 +47,10 @@
         {{ end }}
         {{ end }}
     </div>
+
+    <form action="/fav-locations/{{ .playerRequest.ID }}/delete-request" method="POST" class="delete-request-form">
+        <button type="submit" class="delete-request-button">Удалить заявку</button>
+    </form>
 
 </div>
 

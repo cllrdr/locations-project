@@ -24,11 +24,19 @@
 
     <div class="cards-grid">
         {{ range .locations }}
-        <div class="card" onclick="location.href='/location/{{ .ID }}'">
-            <img src="{{ .ImagePath.String }}" class="card-image">
-            <div class="card-content">
-                <div class="card-title">{{ .Name }}</div>
-                <div class="card-description">{{ .Description }}</div>
+        <div class="card">
+            <div class="card-click-area" onclick="location.href='/location/{{ .ID }}'">
+                <img src="{{ .ImagePath.String }}" class="card-image">
+                <div class="card-content">
+                    <div class="card-title">{{ .Name }}</div>
+                    <div class="card-description">{{ .Description }}</div>
+                </div>
+            </div>
+            <div class="card-buttons">
+                <a href="/location/{{ .ID }}" class="card-btn">Подробнее</a>
+                <form action="/locations/{{ .ID }}/add-to-cart" method="POST">
+                    <button type="submit" class="card-btn">Добавить в корзину</button>
+                </form>
             </div>
         </div>
         {{ end }}
@@ -36,7 +44,14 @@
 
 </div>
 
-<a href="/fav-locations/1" class="favorites-float"><img src="/static/img/cart.png" alt="Мои предпочтения"></a>
+{{ if eq .draftRequestID 0 }}
+<a href="#" class="favorites-float disabled"><img src="/static/img/cart.png" alt="Мои предпочтения"></a>
+{{ else }}
+<a href="/fav-locations/{{ .draftRequestID }}" class="favorites-float">
+    <img src="/static/img/cart.png" alt="Мои предпочтения">
+    <span class="cart-count">{{ .locationsCount }}</span>
+</a>
+{{ end }}
 
 </body>
 </html>

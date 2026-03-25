@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// AddLocationToCart добавляет локацию в корзину (заявку)
+// AddLocationToCart добавляет локацию в корзину (заявку) и делает выбор рандома
 func (h *Handler) AddLocationToCart(ctx *gin.Context) {
 	locationIDStr := ctx.Param("id")
 	locationID, err := strconv.Atoi(locationIDStr)
@@ -30,6 +30,12 @@ func (h *Handler) AddLocationToCart(ctx *gin.Context) {
 		if err != nil {
 			logrus.Error("Error adding location to existing request:", err)
 		}
+	}
+
+	// Делаем выбор рандома среди всех локаций в корзине
+	_, err = h.Repository.ChooseRandomLocationForUser(1)
+	if err != nil {
+		logrus.Error("Error choosing random location:", err)
 	}
 
 	ctx.Redirect(http.StatusFound, "/all-locations")

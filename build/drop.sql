@@ -1,3 +1,5 @@
+-- noinspection SqlDialectInspectionForFile
+
 -- Drop tables (каскадное удаление)
 
 DROP TABLE IF EXISTS players_chosen_locations CASCADE;

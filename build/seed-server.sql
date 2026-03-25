@@ -1,3 +1,5 @@
+-- noinspection SqlDialectInspectionForFile
+
 -- Seed data для locations-project (для продакшена с внешним IP)
 ALTER DATABASE "locations-project" SET timezone TO 'Europe/Moscow';
 SELECT pg_reload_conf();
@@ -11,24 +13,24 @@ INSERT INTO locations (id, name, description, image_path, video_path, players) V
 
 -- Пользователи
 INSERT INTO users (id, email, name, password, is_moderator) VALUES
-(1, 'alpha@example.com', 'Player_Alpha', 'password123', false),
+-- (1, 'alpha@example.com', 'Player_Alpha', 'password123', false),
 (2, 'beta@example.com', 'Player_Beta', 'password123', false),
 (3, 'gamma@example.com', 'Player_Gamma', 'password123', false);
 
 -- Заявки игроков
-INSERT INTO players_location_requests (id, nickname, status, created_at, creator_id) VALUES
-(1, 'Player_Alpha', 'сформирован', NOW(), 1),
-(2, 'Player_Beta', 'сформирован', NOW(), 2),
-(3, 'Player_Gamma', 'сформирован', NOW(), 3);
-
--- Выбранные локации
-INSERT INTO players_chosen_locations (request_id, location_id, priority) VALUES
--- Заявка #1: Player_Alpha
-(1, 2, 1),
-(1, 3, 2),
-(1, 4, 3),
--- Заявка #2: Player_Beta
-(2, 2, 1),
-(2, 4, 2),
--- Заявка #3: Player_Gamma
-(3, 5, 1);
+-- INSERT INTO players_location_requests (id, nickname, status, created_at, creator_id) VALUES
+-- (1, 'Player_Alpha', 'сформирован', NOW(), 1),
+-- (2, 'Player_Beta', 'сформирован', NOW(), 2),
+-- (3, 'Player_Gamma', 'сформирован', NOW(), 3);
+--
+-- -- Выбранные локации
+-- INSERT INTO players_chosen_locations (request_id, location_id, priority) VALUES
+-- -- Заявка #1: Player_Alpha
+-- -- (1, 2, 1),
+-- -- (1, 3, 2),
+-- -- (1, 4, 3),
+-- -- Заявка #2: Player_Beta
+-- (2, 2, 1),
+-- (2, 4, 2),
+-- -- Заявка #3: Player_Gamma
+-- (3, 5, 1);

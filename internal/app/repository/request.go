@@ -1,7 +1,10 @@
 package repository
 
 import (
+	"fmt"
 	"locations-project/internal/app/ds"
+	"math/rand"
+	"time"
 )
 
 // GetPlayersLocationsForRequest получает информацию о заявке пользователя
@@ -39,13 +42,23 @@ func (r *Repository) GetDraftRequestInfo() (ds.PlayersLocationRequest, []ds.Play
 
 // CreateRequestWithLocation создаёт новую заявку и добавляет в неё локацию
 func (r *Repository) CreateRequestWithLocation(locationID uint) (ds.PlayersLocationRequest, error) {
-	request := ds.PlayersLocationRequest{
-		Nickname:  "",
-		Status:    ds.RequestStatusDraft,
-		CreatorID: 1,
+	creatorID := uint(1)
+
+	// Получаем пользователя для заполнения Nickname
+	var user ds.User
+	err := r.db.First(&user, creatorID).Error
+	nickname := ""
+	if err == nil {
+		nickname = user.Name
 	}
 
-	err := r.db.Create(&request).Error
+	request := ds.PlayersLocationRequest{
+		Nickname:  nickname,
+		Status:    ds.RequestStatusDraft,
+		CreatorID: creatorID,
+	}
+
+	err = r.db.Create(&request).Error
 	if err != nil {
 		return ds.PlayersLocationRequest{}, err
 	}
@@ -58,12 +71,12 @@ func (r *Repository) CreateRequestWithLocation(locationID uint) (ds.PlayersLocat
 	return request, nil
 }
 
-// AddLocationToRequest добавляет локацию в заявку (приоритет 0 по умолчанию)
+// AddLocationToRequest добавляет локацию в заявку (приоритет 1 по умолчанию)
 func (r *Repository) AddLocationToRequest(requestID, locationID uint) error {
 	chosenLocation := ds.PlayersChosenLocation{
 		RequestID:  requestID,
 		LocationID: locationID,
-		Priority:   0,
+		Priority:   1,
 	}
 
 	return r.db.Create(&chosenLocation).Error
@@ -72,4 +85,59 @@ func (r *Repository) AddLocationToRequest(requestID, locationID uint) error {
 // DeleteRequest меняет статус заявки на "удалён"
 func (r *Repository) DeleteRequest(requestID uint) error {
 	return r.db.Exec("UPDATE players_location_requests SET status = ? WHERE id = ?", ds.RequestStatusDeleted, requestID).Error
+}
+
+// ChooseRandomLocation выбирает случайную локацию с учётом весов приоритетов
+// Формула: P(locationᵢ) = priorityᵢ / Σ(priorityⱼ)
+func (r *Repository) ChooseRandomLocation(chosenLocations []ds.PlayersChosenLocation) ds.PlayersChosenLocation {
+	if len(chosenLocations) == 0 {
+		return ds.PlayersChosenLocation{}
+	}
+
+	// 1. Считаем сумму приоритетов
+	var totalPriority int
+	for _, loc := range chosenLocations {
+		totalPriority += loc.Priority
+	}
+
+	// 2. Генерируем случайное число от 1 до sum
+	rand.Seed(time.Now().UnixNano())
+	random := rand.Intn(totalPriority) + 1
+
+	// 3. Находим локацию, на которую "выпало" число (взвешенный выбор)
+	cumulative := 0
+	for _, loc := range chosenLocations {
+		cumulative += loc.Priority
+		if random <= cumulative {
+			return loc
+		}
+	}
+
+	// Fallback: возвращаем последнюю локацию
+	return chosenLocations[len(chosenLocations)-1]
+}
+
+// ChooseRandomLocationForUser выбирает случайную локацию из корзины пользователя
+// (заявка остаётся в статусе "черновик")
+func (r *Repository) ChooseRandomLocationForUser(creatorID uint) (ds.PlayersChosenLocation, error) {
+	// Получаем черновик заявки пользователя
+	draftRequest, chosenLocations, err := r.GetDraftRequestInfo()
+	if err != nil {
+		return ds.PlayersChosenLocation{}, err
+	}
+
+	if len(chosenLocations) == 0 {
+		return ds.PlayersChosenLocation{}, fmt.Errorf("в корзине нет локаций")
+	}
+
+	// Выбираем случайную локацию с учётом приоритетов
+	chosen := r.ChooseRandomLocation(chosenLocations)
+
+	// Сохраняем ID выбранной локации в заявке
+	err = r.db.Model(&draftRequest).Update("randomed_location", chosen.LocationID).Error
+	if err != nil {
+		return ds.PlayersChosenLocation{}, err
+	}
+
+	return chosen, nil
 }

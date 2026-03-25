@@ -18,7 +18,7 @@
 
     <div class="favorites-content">
         <h1>Запрос локаций #{{ .playerRequest.ID }}</h1>
-        <p class="player-nickname">Игрок: {{ .playerRequest.Creator.Name }}</p>
+        <p class="player-nickname">Игрок: {{ .playerRequest.Nickname }}</p>
     </div>
 
 
@@ -28,6 +28,7 @@
             <div class="favorite-name-header">Название</div>
             <div class="favorite-description-header">Описание</div>
             <div class="favorite-extra-header">Приоритет</div>
+            <div class="favorite-extra-header">Выбор</div>
         </div>
 
         {{ range .chosenLocations }}
@@ -42,6 +43,9 @@
             <div class="favorite-name">{{ .Name }}</div>
             <div class="favorite-description">{{ .Description }}</div>
             <div class="favorite-extra">{{ $priority }}</div>
+            <div class="favorite-extra">
+                {{ if eq $.playerRequest.RandomedLocation $locationID }}✓{{ end }}
+            </div>
         </div>
         {{ end }}
         {{ end }}

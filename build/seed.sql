@@ -16,19 +16,19 @@ INSERT INTO users (id, email, name, password, is_moderator) VALUES
 (3, 'gamma@example.com', 'Player_Gamma', 'password123', false);
 
 -- Заявки игроков
-INSERT INTO players_location_requests (id, nickname, status, created_at, creator_id) VALUES
-(1, 'Player_Alpha', 'сформирован', NOW(), 1),
-(2, 'Player_Beta', 'сформирован', NOW(), 2),
-(3, 'Player_Gamma', 'сформирован', NOW(), 3);
+-- INSERT INTO players_location_requests (id, nickname, status, created_at, creator_id) VALUES
+-- -- (1, 'Player_Alpha', 'сформирован', NOW(), 1),
+-- (2, 'Player_Beta', 'сформирован', NOW(), 2),
+-- (3, 'Player_Gamma', 'сформирован', NOW(), 3);
 
 -- Выбранные локации
-INSERT INTO players_chosen_locations (request_id, location_id, priority) VALUES
--- Заявка #1: Player_Alpha
-(1, 2, 1),
-(1, 3, 2),
-(1, 4, 3),
--- Заявка #2: Player_Beta
-(2, 2, 1),
-(2, 4, 2),
--- Заявка #3: Player_Gamma
-(3, 5, 1);
+-- INSERT INTO players_chosen_locations (request_id, location_id, priority) VALUES
+-- -- Заявка #1: Player_Alpha
+-- -- (1, 2, 1),
+-- -- (1, 3, 2),
+-- -- (1, 4, 3),
+-- -- Заявка #2: Player_Beta
+-- (2, 2, 1),
+-- (2, 4, 2),
+-- -- Заявка #3: Player_Gamma
+-- (3, 5, 1);

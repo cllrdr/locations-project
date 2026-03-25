@@ -20,6 +20,7 @@
 
     <form action="/all-locations" method="GET" class="search-form">
         <input type="text" name="location-search" class="search-input" placeholder="Поиск локации..." value="{{ .query }}">
+        <button type="submit" class="search-btn">Поиск</button>
     </form>
 
     <div class="cards-grid">
@@ -33,9 +34,8 @@
                 </div>
             </div>
             <div class="card-buttons">
-                <a href="/location/{{ .ID }}" class="card-btn">Подробнее</a>
                 <form action="/locations/{{ .ID }}/add-to-cart" method="POST">
-                    <button type="submit" class="card-btn">Добавить в корзину</button>
+                    <button type="submit" class="card-btn">Выбрать</button>
                 </form>
             </div>
         </div>

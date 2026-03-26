@@ -67,12 +67,37 @@ func (h *Handler) GetPlayersLocations(ctx *gin.Context) {
 	id, err := strconv.Atoi(idRequest)
 	if err != nil {
 		logrus.Error(err)
+		ctx.HTML(http.StatusNotFound, "all-locations.html", gin.H{
+			"locations":      []ds.Location{},
+			"query":          "",
+			"draftRequestID": 0,
+			"locationsCount": 0,
+			"is404":          true,
+		})
 		return
 	}
 
 	request, chosenLocations, err := h.Repository.GetPlayersLocationsForRequest(id)
 	if err != nil {
 		logrus.Error(err)
+		ctx.HTML(http.StatusNotFound, "all-locations.html", gin.H{
+			"locations":      []ds.Location{},
+			"query":          "",
+			"draftRequestID": 0,
+			"locationsCount": 0,
+			"is404":          true,
+		})
+		return
+	}
+
+	if request.Status != ds.RequestStatusDraft {
+		ctx.HTML(http.StatusNotFound, "all-locations.html", gin.H{
+			"locations":      []ds.Location{},
+			"query":          "",
+			"draftRequestID": 0,
+			"locationsCount": 0,
+			"is404":          true,
+		})
 		return
 	}
 

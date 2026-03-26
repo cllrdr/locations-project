@@ -13,7 +13,7 @@ INSERT INTO locations (id, name, description, image_path, video_path, players) V
 
 -- Пользователи
 INSERT INTO users (id, email, name, password, is_moderator) VALUES
--- (1, 'alpha@example.com', 'Player_Alpha', 'password123', false),
+(1, 'alpha@example.com', 'Player_Alpha', 'password123', false)
 (2, 'beta@example.com', 'Player_Beta', 'password123', false),
 (3, 'gamma@example.com', 'Player_Gamma', 'password123', false);
 

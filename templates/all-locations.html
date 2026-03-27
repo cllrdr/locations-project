@@ -18,12 +18,6 @@
         <a href="/all-locations"><button class="nav-button">Все локации</button></a>
     </header>
 
-    {{ if .is404 }}
-    <div class="error-message">
-        <h1>Кто-то уже выбирал себе локации, но это не точно ...</h1>
-    </div>
-    {{ end }}
-
     <form action="/all-locations" method="GET" class="search-form">
         <input type="text" name="location-search" class="search-input" placeholder="Поиск локации..." value="{{ .query }}">
         <button type="submit" class="search-btn">Поиск</button>

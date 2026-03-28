@@ -1,2 +1,9 @@
 ServiceHost = "0.0.0.0"
 ServicePort = 8080
+
+# MinIO настройки (можно переопределить через переменные окружения)
+MinIOEndpoint = "localhost:9000"
+MinIOAccessKey = "minio"
+MinIOSecretKey = "minio124"
+MinIOBucket = "locations"
+MinIOUseSSL = false

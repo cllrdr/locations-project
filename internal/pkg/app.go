@@ -24,14 +24,13 @@ func NewApp(c *config.Config, r *gin.Engine, h *handler.Handler) *Application {
 }
 
 func (a *Application) RunApp() {
-   logrus.Info("Server start up")
+	logrus.Info("Server start up")
 
-   a.Handler.RegisterHandler(a.Router)
-   a.Handler.RegisterStatic(a.Router)
+	a.Handler.RegisterAPI(a.Router)
 
-   serverAddress := fmt.Sprintf("%s:%d", a.Config.ServiceHost, a.Config.ServicePort)
-   if err := a.Router.Run(serverAddress); err != nil {
-      logrus.Fatal(err)
-   }
-   logrus.Info("Server down")
+	serverAddress := fmt.Sprintf("%s:%d", a.Config.ServiceHost, a.Config.ServicePort)
+	if err := a.Router.Run(serverAddress); err != nil {
+		logrus.Fatal(err)
+	}
+	logrus.Info("Server down")
 }

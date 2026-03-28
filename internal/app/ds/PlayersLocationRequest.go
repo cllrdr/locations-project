@@ -16,16 +16,16 @@ const (
 )
 
 type PlayersLocationRequest struct {
-	ID              uint          `gorm:"primaryKey;autoIncrement"`
-	Nickname        string        `gorm:"type:varchar(100);not null"`
-	Status          RequestStatus `gorm:"type:varchar(20);not null;check:status IN ('черновик','удалён','сформирован','завершён','отклонён')"`
-	CreatedAt       time.Time     `gorm:"not null"`
-	FormedAt        sql.NullTime  `gorm:"default:null"`
-	CompletedAt     sql.NullTime  `gorm:"default:null"`
-	RandomedLocation uint        `gorm:"default:null"`
-	CreatorID       uint          `gorm:"not null"`
-	ModeratorID     uint          `gorm:"default:null"`
+	ID              uint          `gorm:"primaryKey;autoIncrement" json:"id"`
+	Nickname        string        `gorm:"type:varchar(100);not null" json:"nickname"`
+	Status          RequestStatus `gorm:"type:varchar(20);not null;check:status IN ('черновик','удалён','сформирован','завершён','отклонён')" json:"status"`
+	CreatedAt       time.Time     `gorm:"not null" json:"created_at"`
+	FormedAt        sql.NullTime  `gorm:"default:null" json:"formed_at,omitempty"`
+	CompletedAt     sql.NullTime  `gorm:"default:null" json:"completed_at,omitempty"`
+	RandomedLocation uint         `gorm:"default:null" json:"randomed_location,omitempty"`
+	CreatorID       uint          `gorm:"not null" json:"creator_id"`
+	ModeratorID     sql.NullInt64 `gorm:"default:null" json:"moderator_id,omitempty"`
 
-	Creator   User `gorm:"foreignKey:CreatorID;constraint:OnDelete:CASCADE"`
-	Moderator User `gorm:"foreignKey:ModeratorID"`
+	Creator   User `gorm:"foreignKey:CreatorID" json:"creator,omitempty"`
+	Moderator User `gorm:"foreignKey:ModeratorID" json:"moderator,omitempty"`
 }

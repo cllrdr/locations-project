@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"locations-project/internal/app/ds"
 	"math/rand"
-	"time"
 )
 
 // GetPlayersLocationsForRequest получает информацию о заявке пользователя
@@ -89,32 +88,21 @@ func (r *Repository) DeleteRequest(requestID uint) error {
 
 // ChooseRandomLocation выбирает случайную локацию с учётом весов приоритетов
 // Формула: P(locationᵢ) = priorityᵢ / Σ(priorityⱼ)
-func (r *Repository) ChooseRandomLocation(chosenLocations []ds.PlayersChosenLocation) ds.PlayersChosenLocation {
-	if len(chosenLocations) == 0 {
+func (r *Repository) ChooseRandomLocation(locs []ds.PlayersChosenLocation) ds.PlayersChosenLocation {
+	if len(locs) == 0 {
 		return ds.PlayersChosenLocation{}
 	}
-
-	// 1. Считаем сумму приоритетов
-	var totalPriority int
-	for _, loc := range chosenLocations {
-		totalPriority += loc.Priority
+	total := 0
+	for _, l := range locs {
+		total += l.Priority
 	}
-
-	// 2. Генерируем случайное число от 1 до sum
-	rand.Seed(time.Now().UnixNano())
-	random := rand.Intn(totalPriority) + 1
-
-	// 3. Находим локацию, на которую "выпало" число (взвешенный выбор)
-	cumulative := 0
-	for _, loc := range chosenLocations {
-		cumulative += loc.Priority
-		if random <= cumulative {
-			return loc
+	randVal, cum := rand.Intn(total), 0
+	for _, l := range locs {
+		if cum += l.Priority; randVal < cum {
+			return l
 		}
 	}
-
-	// Fallback: возвращаем последнюю локацию
-	return chosenLocations[len(chosenLocations)-1]
+	return locs[0]
 }
 
 // ChooseRandomLocationForUser выбирает случайную локацию из корзины пользователя

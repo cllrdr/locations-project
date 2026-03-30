@@ -6,6 +6,6 @@ type PlayersChosenLocation struct {
 	LocationID uint `gorm:"not null;uniqueIndex:idx_request_location"`
 	Priority   int  `gorm:"not null"`
 
-	Request  PlayersLocationRequest `gorm:"foreignKey:RequestID;constraint:OnDelete:CASCADE"`
-	Location Location               `gorm:"foreignKey:LocationID;constraint:OnDelete:CASCADE"`
+	Request  PlayersLocationRequest `gorm:"foreignKey:RequestID"`
+	Location Location               `gorm:"foreignKey:LocationID"`
 }

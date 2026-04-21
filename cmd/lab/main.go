@@ -24,7 +24,6 @@ func main() {
 	postgresString := dsn.FromEnv()
 	fmt.Println(postgresString)
 
-	// Получаем настройки MinIO из переменных окружения
 	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
 	if minioEndpoint == "" {
 		minioEndpoint = "localhost:9000"

@@ -17,16 +17,6 @@ func NewHandler(r *repository.Repository) *Handler {
 	}
 }
 
-// RegisterHandler Регистрирует HTML маршруты (устарело, можно удалить)
-// func (h *Handler) RegisterHandler(router *gin.Engine) {
-// 	router.GET("/all-locations", h.GetLocations)
-// 	router.GET("/location/:id", h.GetLocation)
-// 	router.GET("/fav-locations/:id", h.GetPlayersLocations)
-// 	router.POST("/locations/:id/add-to-cart", h.AddLocationToCart)
-// 	router.POST("/fav-locations/:id/delete-request", h.DeleteRequest)
-// }
-
-// RegisterAPI Регистрирует REST API маршруты с префиксом /api
 func (h *Handler) RegisterAPI(router *gin.Engine) {
 	api := router.Group("/api")
 	{

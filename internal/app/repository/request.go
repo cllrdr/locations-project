@@ -240,7 +240,7 @@ func (r *Repository) CompleteRequest(id uint, approve bool) error {
 	return nil
 }
 
-// chooseRandomLocationForRequest выбирает случайную локацию и вычисляет результат
+// chooseRandomLocationForRequest выбирает случайную локацию и устанавливает флаг IsRandomed
 func (r *Repository) chooseRandomLocationForRequest(requestID uint) error {
 	var chosenLocations []ds.PlayersChosenLocation
 	err := r.db.Where("request_id = ?", requestID).Find(&chosenLocations).Error
@@ -254,7 +254,14 @@ func (r *Repository) chooseRandomLocationForRequest(requestID uint) error {
 
 	chosen := r.ChooseRandomLocation(chosenLocations)
 
-	err = r.db.Model(&ds.PlayersLocationRequest{}).Where("id = ?", requestID).Update("randomed_location", chosen.LocationID).Error
+	// Сбрасываем флаг IsRandomed для всех локаций этого запроса
+	err = r.db.Model(&ds.PlayersChosenLocation{}).Where("request_id = ?", requestID).Update("is_randomed", false).Error
+	if err != nil {
+		return err
+	}
+
+	// Устанавливаем флаг IsRandomed = true для выбранной локации
+	err = r.db.Model(&ds.PlayersChosenLocation{}).Where("id = ?", chosen.ID).Update("is_randomed", true).Error
 	return err
 }
 

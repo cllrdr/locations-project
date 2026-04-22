@@ -3,8 +3,9 @@ package handler
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"locations-project/internal/app/ds"
+
+	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) RegisterUserAPI(ctx *gin.Context) {
@@ -41,29 +42,4 @@ func (h *Handler) LogoutAPI(ctx *gin.Context) {
 		"status":  "success",
 		"message": "logged out",
 	})
-}
-
-func (h *Handler) GetMeAPI(ctx *gin.Context) {
-	meID := ds.GetCreatorID()
-	user, err := h.Repository.GetUserByID(meID)
-	if err != nil {
-		h.errorHandler(ctx, http.StatusNotFound, err)
-		return
-	}
-	ctx.JSON(http.StatusOK, user)
-}
-
-func (h *Handler) UpdateMeAPI(ctx *gin.Context) {
-	meID := ds.GetCreatorID()
-	var user ds.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
-		h.errorHandler(ctx, http.StatusBadRequest, err)
-		return
-	}
-	if err := h.Repository.UpdateUser(meID, user); err != nil {
-		h.errorHandler(ctx, http.StatusBadRequest, err)
-		return
-	}
-	updatedUser, _ := h.Repository.GetUserByID(meID)
-	ctx.JSON(http.StatusOK, updatedUser)
 }

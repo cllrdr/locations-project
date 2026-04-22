@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"locations-project/internal/app/ds"
+
+	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) GetRequestsAPI(ctx *gin.Context) {
@@ -36,16 +38,27 @@ func (h *Handler) GetRequestsAPI(ctx *gin.Context) {
 		return
 	}
 
-	// Упрощаем ответ, убирая лишние поля
 	var simplifiedRequests []gin.H
 	for _, req := range requests {
+		creatorName := ""
+		if req.Creator.Name != "" {
+			creatorName = req.Creator.Name
+		}
+
+		moderatorName := ""
+		if req.Moderator.Name != "" {
+			moderatorName = req.Moderator.Name
+		}
+
 		simplifiedRequests = append(simplifiedRequests, gin.H{
-			"id":           req.ID,
-			"nickname":     req.Nickname,
-			"status":       req.Status,
-			"created_at":   req.CreatedAt,
-			"formed_at":    req.FormedAt,
-			"completed_at": req.CompletedAt,
+			"id":             req.ID,
+			"nickname":       req.Nickname,
+			"status":         req.Status,
+			"created_at":     req.CreatedAt,
+			"formed_at":      req.FormedAt,
+			"completed_at":   req.CompletedAt,
+			"creator_name":   creatorName,
+			"moderator_name": moderatorName,
 		})
 	}
 
@@ -88,7 +101,6 @@ func (h *Handler) GetRequestAPI(ctx *gin.Context) {
 		"created_at":   request.CreatedAt,
 		"formed_at":    request.FormedAt,
 		"completed_at": request.CompletedAt,
-		"randomed_location": request.RandomedLocation,
 		"locations":    simplifiedLocations,
 	})
 }
@@ -107,7 +119,17 @@ func (h *Handler) UpdateRequestAPI(ctx *gin.Context) {
 		return
 	}
 
-	err = h.Repository.UpdateRequest(uint(id), request)
+	// Получаем текущую заявку
+	currentRequest, err := h.Repository.GetRequest(uint(id))
+	if err != nil {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
+
+	// Обновляем только разрешённые поля (системные поля не меняются)
+	currentRequest.Nickname = request.Nickname
+
+	err = h.Repository.UpdateRequest(uint(id), currentRequest)
 	if err != nil {
 		if err.Error() == "record not found" {
 			h.errorHandler(ctx, http.StatusNotFound, err)
@@ -209,5 +231,49 @@ func (h *Handler) CompleteRequestAPI(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"status":  "success",
 		"message": message,
+	})
+}
+
+func (h *Handler) AddLocationToRequestAPI(ctx *gin.Context) {
+	requestIDStr := ctx.Param("id")
+	requestID, err := strconv.ParseUint(requestIDStr, 10, 32)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	locationIDStr := ctx.Param("locationId")
+	locationID, err := strconv.ParseUint(locationIDStr, 10, 32)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	// Получаем заявку
+	request, err := h.Repository.GetRequest(uint(requestID))
+	if err != nil {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
+
+	// Проверяем, что заявка в статусе черновика
+	if request.Status != ds.RequestStatusDraft {
+		h.errorHandler(ctx, http.StatusBadRequest, fmt.Errorf("заявка должна быть в статусе черновика"))
+		return
+	}
+
+	// Добавляем локацию в заявку
+	if err := h.Repository.AddLocationToRequest(uint(requestID), uint(locationID)); err != nil {
+		if err.Error() == "локация уже добавлена в заявку" {
+			h.errorHandler(ctx, http.StatusBadRequest, err)
+		} else {
+			h.errorHandler(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"status":  "success",
+		"message": "Локация добавлена в заявку",
 	})
 }

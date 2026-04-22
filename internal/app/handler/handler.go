@@ -25,8 +25,6 @@ func (h *Handler) RegisterAPI(router *gin.Engine) {
 			profile.POST("/register", h.RegisterUserAPI)
 			profile.POST("/login", h.LoginAPI)
 			profile.POST("/logout", h.LogoutAPI)
-			profile.GET("/me", h.GetMeAPI)
-			profile.PUT("/me", h.UpdateMeAPI)
 		}
 
 		locations := api.Group("/locations")
@@ -34,10 +32,6 @@ func (h *Handler) RegisterAPI(router *gin.Engine) {
 			locations.GET("", h.GetLocationsAPI)
 			locations.GET("/:id", h.GetLocationAPI)
 			locations.POST("", h.CreateLocationAPI)
-			locations.PUT("/:id", h.UpdateLocationAPI)
-			locations.DELETE("/:id", h.DeleteLocationAPI)
-			locations.POST("/:id/image", h.UploadLocationImageAPI)
-			locations.POST("/:id/addLocation", h.AddLocationToRequestAPI)
 		}
 
 		requests := api.Group("/requests")
@@ -49,12 +43,9 @@ func (h *Handler) RegisterAPI(router *gin.Engine) {
 			requests.DELETE("/:id", h.DeleteRequestAPI)
 			requests.PUT("/:id/form", h.FormRequestAPI)
 			requests.PUT("/:id/complete", h.CompleteRequestAPI)
-		}
-
-		requestLocations := api.Group("/requestlocations")
-		{
-			requestLocations.PUT("/:id/location/:locationId", h.UpdateLocationPriorityAPI)
-			requestLocations.DELETE("/:id/location/:locationId", h.RemoveLocationFromRequestAPI)
+			requests.POST("/:id/locations/:locationId", h.AddLocationToRequestAPI)
+			requests.PUT("/:id/locations/:locationId", h.UpdateLocationPriorityAPI)
+			requests.DELETE("/:id/locations/:locationId", h.RemoveLocationFromRequestAPI)
 		}
 	}
 }

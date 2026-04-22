@@ -21,6 +21,9 @@ func (r *Repository) GetLocations(locationName string) ([]ds.Location, error) {
 	}
 
 	err := query.Find(&locations).Error
+	if locations == nil {
+		locations = []ds.Location{}
+	}
 	return locations, err
 }
 

@@ -5,40 +5,37 @@
 http://localhost:8080/api
 ```
 
-## Домен "Локации" (аналог Services)
+## Домен "Локации" (Services)
 
 | Метод | URL | Описание |
 |-------|-----|----------|
 | GET | `/api/locations?location={name}` | Список локаций с фильтрацией |
 | GET | `/api/locations/:id` | Одна локация |
-| POST | `/api/locations` | Создание локации |
-| PUT | `/api/locations/:id` | Обновление локации |
-| DELETE | `/api/locations/:id` | Удаление локации (soft delete) |
-| POST | `/api/locations/:id/image` | Загрузка изображения |
-| POST | `/api/locations/:id/addLocation` | Добавить локацию в заявку-черновик |
+| POST | `/api/locations` | Создание локации с картинкой и видео |
 
-### Примеры:
+### Примеры для Postman:
 
-**GET список:**
-```bash
-GET /api/locations?location=пляж
+**1. GET список локаций:**
+```
+GET http://localhost:8080/api/locations?location=пляж
 ```
 
-**POST создание:**
-```json
-POST /api/locations
-{
-  "name": "Пляж",
-  "description": "Красивый пляж",
-  "players": "2-4"
-}
+**2. GET одна локация:**
+```
+GET http://localhost:8080/api/locations/1
 ```
 
-**POST загрузка изображения:**
-```bash
-POST /api/locations/1/image
+**3. POST создание локации с файлами:**
+```
+POST http://localhost:8080/api/locations
 Content-Type: multipart/form-data
-image: <file>
+
+Fields:
+- name: "Пляж Золотой"
+- description: "Красивый песчаный пляж"
+- players: "2-6"
+- image: <выбрать файл>
+- video: <выбрать файл>
 ```
 
 ---
@@ -47,46 +44,100 @@ image: <file>
 
 | Метод | URL | Описание |
 |-------|-----|----------|
-| GET | `/api/requests/cart` | Иконка корзины (id черновика + счётчик) |
-| GET | `/api/requests?status=&start_date=&end_date=` | Список с фильтрацией |
-| GET | `/api/requests/:id` | Одна заявка + локации |
-| PUT | `/api/requests/:id` | Обновление полей заявки |
-| DELETE | `/api/requests/:id` | Удаление заявки (статус → "удалён") |
-| PUT | `/api/requests/:id/form` | Сформировать черновик |
-| PUT | `/api/requests/:id/complete` | Завершить/отклонить заявку |
+| GET | `/api/requests/cart` | Иконка корзины (id черновика + счётчик локаций) |
+| GET | `/api/requests?status=&start_date=&end_date=` | Список (кроме черновиков и удаленных) |
+| GET | `/api/requests/:id` | Одна заявка со списком локаций |
+| PUT | `/api/requests/:id` | Обновление только nickname |
+| DELETE | `/api/requests/:id` | Удаление (статус → "удалён") |
+| PUT | `/api/requests/:id/form` | Сформировать черновик (переход в "сформирован") |
+| PUT | `/api/requests/:id/complete` | Завершить/отклонить (модератором) |
 
-### Примеры:
+### Примеры для Postman:
 
-**GET список с фильтрацией:**
-```bash
-GET /api/requests?status=сформирован&start_date=2025-01-01&end_date=2025-12-31
+**1. GET корзина текущего пользователя:**
+```
+GET http://localhost:8080/api/requests/cart
+```
+Ответ:
+```json
+{
+  "draft_id": 5,
+  "locations_cnt": 2
+}
 ```
 
-**PUT завершение:**
-```json
-PUT /api/requests/1/complete
+**2. GET список заявок с фильтром:**
+```
+GET http://localhost:8080/api/requests?status=сформирован&start_date=2025-01-01&end_date=2025-12-31
+```
+
+**3. GET одна заявка:**
+```
+GET http://localhost:8080/api/requests/2
+```
+
+**4. PUT обновление заявки:**
+```
+PUT http://localhost:8080/api/requests/2
+Content-Type: application/json
+
+{
+  "nickname": "Иван Петров"
+}
+```
+
+**5. PUT сформировать заявку:**
+```
+PUT http://localhost:8080/api/requests/2/form
+Content-Type: application/json
+```
+
+**6. PUT завершить/отклонить заявку:**
+```
+PUT http://localhost:8080/api/requests/2/complete
+Content-Type: application/json
+
 {
   "approve": true
 }
 ```
 
+**7. DELETE удалить заявку:**
+```
+DELETE http://localhost:8080/api/requests/2
+```
+
 ---
 
-## Домен "М-М связь" (RequestLocations)
+## Домен "М-М связь" (Локации в Заявке)
 
 | Метод | URL | Описание |
 |-------|-----|----------|
-| PUT | `/api/requestlocations/:id/location/:locationId` | Обновление приоритета |
-| DELETE | `/api/requestlocations/:id/location/:locationId` | Удалить локацию из заявки |
+| POST | `/api/requests/:requestId/locations/:locationId` | Добавить локацию в черновик |
+| PUT | `/api/requests/:requestId/locations/:locationId` | Изменить приоритет локации |
+| DELETE | `/api/requests/:requestId/locations/:locationId` | Удалить локацию из заявки |
 
-### Примеры:
+### Примеры для Postman:
 
-**PUT приоритет:**
-```json
-PUT /api/requestlocations/1/location/5
+**1. POST добавить локацию в заявку:**
+```
+POST http://localhost:8080/api/requests/2/locations/5
+Content-Type: application/json
+```
+
+**2. PUT изменить приоритет:**
+```
+PUT http://localhost:8080/api/requests/2/locations/5
+Content-Type: application/json
+
 {
   "priority": 10
 }
+```
+
+**3. DELETE удалить локацию:**
+```
+DELETE http://localhost:8080/api/requests/2/locations/5
 ```
 
 ---
@@ -95,60 +146,38 @@ PUT /api/requestlocations/1/location/5
 
 | Метод | URL | Описание |
 |-------|-----|----------|
-| POST | `/api/profile/register` | Регистрация |
-| POST | `/api/profile/login` | Аутентификация |
-| POST | `/api/profile/logout` | Деавторизация |
-| GET | `/api/profile/me` | Данные текущего пользователя |
-| PUT | `/api/profile/me` | Обновление профиля |
+| POST | `/api/profile/register` | Регистрация пользователя |
+| POST | `/api/profile/login` | Аутентификация (заглушка) |
+| POST | `/api/profile/logout` | Деавторизация (заглушка) |
 
-### Примеры:
+### Примеры для Postman:
 
-**POST регистрация:**
-```json
-POST /api/profile/register
+**1. POST регистрация:**
+```
+POST http://localhost:8080/api/profile/register
+Content-Type: application/json
+
 {
-  "email": "user@example.com",
-  "name": "Иван",
-  "password": "12345"
+  "email": "ivan@example.com",
+  "name": "Иван Петров",
+  "password": "password123"
 }
 ```
 
-**POST логин:**
-```json
-POST /api/profile/login
+**2. POST логин:**
+```
+POST http://localhost:8080/api/profile/login
+Content-Type: application/json
+
 {
-  "email": "user@example.com",
-  "password": "12345"
+  "email": "ivan@example.com",
+  "password": "password123"
 }
 ```
 
----
-
-## Статусы заявок
-
-- `черновик` → можно удалять, формировать
-- `сформирован` → можно завершать, отклонять
-- `завершён` → конечный статус
-- `отклонён` → конечный статус
-- `удалён` → конечный статус (soft delete)
-
----
-
-## Запуск
-
-1. Поднять Docker:
-```bash
-docker-compose up -d
+**3. POST логаут:**
+```
+POST http://localhost:8080/api/profile/logout
+Content-Type: application/json
 ```
 
-2. Запустить приложение:
-```bash
-./lab
-# или
-go run ./cmd/lab/main.go
-```
-
-3. Проверить API:
-```bash
-curl http://localhost:8080/api/locations
-```

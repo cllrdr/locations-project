@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	"locations-project/internal/app/ds"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"locations-project/internal/app/ds"
 )
 
 func (h *Handler) GetLocations(ctx *gin.Context) {
@@ -67,25 +68,19 @@ func (h *Handler) GetPlayersLocations(ctx *gin.Context) {
 	id, err := strconv.Atoi(idRequest)
 	if err != nil {
 		logrus.Error(err)
-		ctx.HTML(http.StatusOK, "fav-locations.html", gin.H{
-			"is404": true,
-		})
+		ctx.Redirect(http.StatusFound, "/all-locations")
 		return
 	}
 
 	request, chosenLocations, err := h.Repository.GetPlayersLocationsForRequest(id)
 	if err != nil {
 		logrus.Error(err)
-		ctx.HTML(http.StatusOK, "fav-locations.html", gin.H{
-			"is404": true,
-		})
+		ctx.Redirect(http.StatusFound, "/all-locations")
 		return
 	}
 
 	if request.Status != ds.RequestStatusDraft {
-		ctx.HTML(http.StatusOK, "fav-locations.html", gin.H{
-			"is404": true,
-		})
+		ctx.Redirect(http.StatusFound, "/all-locations")
 		return
 	}
 

@@ -27,7 +27,7 @@
     {{ else }}
     <div class="favorites-content">
         <h1>Запрос локаций #{{ .playerRequest.ID }}</h1>
-        <p class="player-nickname">Игрок: {{ .playerRequest.Nickname }}</p>
+        <p class="player-nickname">Игрок: </p>
     </div>
 
 
@@ -53,7 +53,7 @@
             <div class="favorite-description">{{ .Description }}</div>
             <div class="favorite-extra">{{ $priority }}</div>
             <div class="favorite-extra">
-                {{ if eq $.playerRequest.RandomedLocation $locationID }}✓{{ end }}
+                {{ if eq $.playerRequest.RandomedLocation $locationID }} {{ end }}
             </div>
         </div>
         {{ end }}

@@ -43,7 +43,7 @@ func (h *Handler) RegisterAPI(router *gin.Engine) {
 			requests.DELETE("/:id", h.DeleteRequestAPI)
 			requests.PUT("/:id/form", h.FormRequestAPI)
 			requests.PUT("/:id/complete", h.CompleteRequestAPI)
-			requests.POST("/:id/locations/:locationId", h.AddLocationToRequestAPI)
+			requests.POST("/locations/:locationId", h.AddLocationToRequestAPI)
 			requests.PUT("/:id/locations/:locationId", h.UpdateLocationPriorityAPI)
 			requests.DELETE("/:id/locations/:locationId", h.RemoveLocationFromRequestAPI)
 		}

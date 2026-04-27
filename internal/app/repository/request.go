@@ -145,21 +145,13 @@ func (r *Repository) isValidStatusTransition(current, new ds.RequestStatus) bool
 func (r *Repository) CreateRequestWithLocation(locationID uint) (ds.PlayersLocationRequest, error) {
 	creatorID := ds.GetCreatorID()
 
-	// Получаем пользователя для заполнения Nickname
-	var user ds.User
-	err := r.db.First(&user, creatorID).Error
-	nickname := ""
-	if err == nil {
-		nickname = user.Name
-	}
-
 	request := ds.PlayersLocationRequest{
-		Nickname:  nickname,
+		Nickname:  "",
 		Status:    ds.RequestStatusDraft,
 		CreatorID: creatorID,
 	}
 
-	err = r.db.Create(&request).Error
+	err := r.db.Create(&request).Error
 	if err != nil {
 		return ds.PlayersLocationRequest{}, err
 	}
@@ -223,9 +215,8 @@ func (r *Repository) CompleteRequest(id uint, approve bool) error {
 	if approve {
 		status = ds.RequestStatusCompleted
 	}
-	mod := ds.GetCreatorID()
 
-	err := r.UpdateRequestStatus(id, status, &mod)
+	err := r.UpdateRequestStatus(id, status, nil)
 	if err != nil {
 		return err
 	}

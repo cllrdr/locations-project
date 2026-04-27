@@ -235,13 +235,6 @@ func (h *Handler) CompleteRequestAPI(ctx *gin.Context) {
 }
 
 func (h *Handler) AddLocationToRequestAPI(ctx *gin.Context) {
-	requestIDStr := ctx.Param("id")
-	requestID, err := strconv.ParseUint(requestIDStr, 10, 32)
-	if err != nil {
-		h.errorHandler(ctx, http.StatusBadRequest, err)
-		return
-	}
-
 	locationIDStr := ctx.Param("locationId")
 	locationID, err := strconv.ParseUint(locationIDStr, 10, 32)
 	if err != nil {
@@ -249,21 +242,37 @@ func (h *Handler) AddLocationToRequestAPI(ctx *gin.Context) {
 		return
 	}
 
-	// Получаем заявку
-	request, err := h.Repository.GetRequest(uint(requestID))
+	// Получаем черновик заявки текущего пользователя
+	draft, _, err := h.Repository.GetDraftRequestInfo()
+
+	var request ds.PlayersLocationRequest
+
+	// Если черновика нет, создаём новую заявку с этой локацией
 	if err != nil {
-		h.errorHandler(ctx, http.StatusNotFound, err)
+		request, err = h.Repository.CreateRequestWithLocation(uint(locationID))
+		if err != nil {
+			h.errorHandler(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		ctx.JSON(http.StatusCreated, gin.H{
+			"status":     "success",
+			"message":    "Заявка создана и локация добавлена",
+			"request_id": request.ID,
+		})
 		return
 	}
 
+	// Если черновик есть, добавляем локацию в существующую заявку
+	requestID := draft.ID
+
 	// Проверяем, что заявка в статусе черновика
-	if request.Status != ds.RequestStatusDraft {
+	if draft.Status != ds.RequestStatusDraft {
 		h.errorHandler(ctx, http.StatusBadRequest, fmt.Errorf("заявка должна быть в статусе черновика"))
 		return
 	}
 
 	// Добавляем локацию в заявку
-	if err := h.Repository.AddLocationToRequest(uint(requestID), uint(locationID)); err != nil {
+	if err := h.Repository.AddLocationToRequest(requestID, uint(locationID)); err != nil {
 		if err.Error() == "локация уже добавлена в заявку" {
 			h.errorHandler(ctx, http.StatusBadRequest, err)
 		} else {
@@ -273,7 +282,8 @@ func (h *Handler) AddLocationToRequestAPI(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"status":  "success",
-		"message": "Локация добавлена в заявку",
+		"status":     "success",
+		"message":    "Локация добавлена в заявку",
+		"request_id": requestID,
 	})
 }

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"database/sql"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -127,17 +126,17 @@ func (h *Handler) CreateLocationAPI(ctx *gin.Context) {
 
 	// Создаём локацию
 	location := ds.Location{
-		Name:        name,
-		Description: description,
-		Players:     players,
+		Name:             name,
+		Description:      description,
+		ShortDescription: description, // используем description как short_description
+		Players:          players,
 	}
 
 	if imagePath != nil {
-		location.ImagePath = sql.NullString{String: *imagePath, Valid: true}
+		location.ImagePath = *imagePath
 	}
-
 	if videoPath != nil {
-		location.VideoPath = sql.NullString{String: *videoPath, Valid: true}
+		location.VideoPath = *videoPath
 	}
 
 	createdLocation, err := h.Repository.CreateLocation(location)

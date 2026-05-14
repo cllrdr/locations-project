@@ -11,9 +11,9 @@ import (
 )
 
 // GetRequests получает список заявок с фильтрацией по статусу и диапазону даты формирования
-func (r *Repository) GetRequests(status *ds.RequestStatus, startDate, endDate *time.Time) ([]ds.PlayersLocationRequest, error) {
-	var requests []ds.PlayersLocationRequest
-	query := r.db.Where("status != ? AND status != ?", ds.RequestStatusDeleted, ds.RequestStatusDraft)
+func (r *Repository) GetRequests(status *ds.GameStatus, startDate, endDate *time.Time) ([]ds.PlayersLocationGame, error) {
+	var requests []ds.PlayersLocationGame
+	query := r.db.Where("status != ? AND status != ?", ds.GameStatusDeleted, ds.GameStatusDraft)
 
 	if status != nil {
 		query = query.Where("status = ?", *status)
@@ -32,54 +32,54 @@ func (r *Repository) GetRequests(status *ds.RequestStatus, startDate, endDate *t
 }
 
 // GetRequest получает одну заявку по ID
-func (r *Repository) GetRequest(id uint) (ds.PlayersLocationRequest, error) {
-	var request ds.PlayersLocationRequest
-	err := r.db.Preload("Creator").Preload("Moderator").Where("id = ? AND status != ?", id, ds.RequestStatusDeleted).First(&request).Error
+func (r *Repository) GetRequest(id uint) (ds.PlayersLocationGame, error) {
+	var request ds.PlayersLocationGame
+	err := r.db.Preload("Creator").Preload("Moderator").Where("id = ? AND status != ?", id, ds.GameStatusDeleted).First(&request).Error
 	return request, err
 }
 
 // GetRequestWithLocations получает заявку со списком локаций
-func (r *Repository) GetRequestWithLocations(id uint) (ds.PlayersLocationRequest, []ds.PlayersChosenLocation, error) {
+func (r *Repository) GetRequestWithLocations(id uint) (ds.PlayersLocationGame, []ds.PlayersChosenLocation, error) {
 	req, err := r.GetRequest(id)
 	if err != nil {
-		return ds.PlayersLocationRequest{}, nil, err
+		return ds.PlayersLocationGame{}, nil, err
 	}
 	var locations []ds.PlayersChosenLocation
 	err = r.db.Preload("Location").Where("request_id = ?", id).Find(&locations).Error
 	if err != nil {
-		return ds.PlayersLocationRequest{}, nil, err
+		return ds.PlayersLocationGame{}, nil, err
 	}
 	return req, locations, nil
 }
 
 // GetPlayersLocationsForRequest получает информацию о заявке пользователя
-func (r *Repository) GetPlayersLocationsForRequest(requestID int) (ds.PlayersLocationRequest, []ds.PlayersChosenLocation, error) {
+func (r *Repository) GetPlayersLocationsForRequest(requestID int) (ds.PlayersLocationGame, []ds.PlayersChosenLocation, error) {
 	return r.GetRequestWithLocations(uint(requestID))
 }
 
 // GetDraftRequestInfo получает информацию о черновике заявки пользователя
-func (r *Repository) GetDraftRequestInfo() (ds.PlayersLocationRequest, []ds.PlayersChosenLocation, error) {
+func (r *Repository) GetDraftRequestInfo() (ds.PlayersLocationGame, []ds.PlayersChosenLocation, error) {
 	creatorID := ds.GetCreatorID()
 
-	var request ds.PlayersLocationRequest
-	err := r.db.Preload("Creator").Preload("Moderator").Where("creator_id = ? AND status = ?", creatorID, ds.RequestStatusDraft).First(&request).Error
+	var request ds.PlayersLocationGame
+	err := r.db.Preload("Creator").Preload("Moderator").Where("creator_id = ? AND status = ?", creatorID, ds.GameStatusDraft).First(&request).Error
 	if err != nil {
-		return ds.PlayersLocationRequest{}, nil, err
+		return ds.PlayersLocationGame{}, nil, err
 	}
 
 	var chosenLocations []ds.PlayersChosenLocation
 	err = r.db.Preload("Location").Where("request_id = ?", request.ID).Find(&chosenLocations).Error
 	if err != nil {
-		return ds.PlayersLocationRequest{}, nil, err
+		return ds.PlayersLocationGame{}, nil, err
 	}
 
 	return request, chosenLocations, nil
 }
 
 // UpdateRequest обновляет поля заявки
-func (r *Repository) UpdateRequest(id uint, request ds.PlayersLocationRequest) error {
-	var existingRequest ds.PlayersLocationRequest
-	err := r.db.Where("id = ? AND status != ?", id, ds.RequestStatusDeleted).First(&existingRequest).Error
+func (r *Repository) UpdateRequest(id uint, request ds.PlayersLocationGame) error {
+	var existingRequest ds.PlayersLocationGame
+	err := r.db.Where("id = ? AND status != ?", id, ds.GameStatusDeleted).First(&existingRequest).Error
 	if err != nil {
 		return err
 	}
@@ -88,9 +88,9 @@ func (r *Repository) UpdateRequest(id uint, request ds.PlayersLocationRequest) e
 }
 
 // UpdateRequestStatus обновляет статус заявки с проверкой допустимых переходов
-func (r *Repository) UpdateRequestStatus(id uint, newStatus ds.RequestStatus, moderatorID *uint) error {
-	var request ds.PlayersLocationRequest
-	err := r.db.Where("id = ? AND status != ?", id, ds.RequestStatusDeleted).First(&request).Error
+func (r *Repository) UpdateRequestStatus(id uint, newStatus ds.GameStatus, moderatorID *uint) error {
+	var request ds.PlayersLocationGame
+	err := r.db.Where("id = ? AND status != ?", id, ds.GameStatusDeleted).First(&request).Error
 	if err != nil {
 		return err
 	}
@@ -104,10 +104,10 @@ func (r *Repository) UpdateRequestStatus(id uint, newStatus ds.RequestStatus, mo
 	}
 
 	switch newStatus {
-	case ds.RequestStatusFormed:
+	case ds.GameStatusFormed:
 		now := time.Now()
 		updates["formed_at"] = now
-	case ds.RequestStatusCompleted, ds.RequestStatusRejected:
+	case ds.GameStatusCompleted, ds.GameStatusRejected:
 		now := time.Now()
 		updates["completed_at"] = now
 		if moderatorID != nil {
@@ -115,17 +115,17 @@ func (r *Repository) UpdateRequestStatus(id uint, newStatus ds.RequestStatus, mo
 		}
 	}
 
-	return r.db.Model(&ds.PlayersLocationRequest{}).Where("id = ?", id).Updates(updates).Error
+	return r.db.Model(&ds.PlayersLocationGame{}).Where("id = ?", id).Updates(updates).Error
 }
 
 // isValidStatusTransition проверяет допустимость перехода статуса
-func (r *Repository) isValidStatusTransition(current, new ds.RequestStatus) bool {
-	validTransitions := map[ds.RequestStatus][]ds.RequestStatus{
-		ds.RequestStatusDraft:     {ds.RequestStatusDeleted, ds.RequestStatusFormed},
-		ds.RequestStatusFormed:    {ds.RequestStatusCompleted, ds.RequestStatusRejected},
-		ds.RequestStatusCompleted: {},
-		ds.RequestStatusRejected:  {},
-		ds.RequestStatusDeleted:   {},
+func (r *Repository) isValidStatusTransition(current, new ds.GameStatus) bool {
+	validTransitions := map[ds.GameStatus][]ds.GameStatus{
+		ds.GameStatusDraft:     {ds.GameStatusDeleted, ds.GameStatusFormed},
+		ds.GameStatusFormed:    {ds.GameStatusCompleted, ds.GameStatusRejected},
+		ds.GameStatusCompleted: {},
+		ds.GameStatusRejected:  {},
+		ds.GameStatusDeleted:   {},
 	}
 
 	allowedStatuses, exists := validTransitions[current]
@@ -142,23 +142,23 @@ func (r *Repository) isValidStatusTransition(current, new ds.RequestStatus) bool
 }
 
 // CreateRequestWithLocation создаёт новую заявку и добавляет в неё локацию
-func (r *Repository) CreateRequestWithLocation(locationID uint) (ds.PlayersLocationRequest, error) {
+func (r *Repository) CreateRequestWithLocation(locationID uint) (ds.PlayersLocationGame, error) {
 	creatorID := ds.GetCreatorID()
 
-	request := ds.PlayersLocationRequest{
+	request := ds.PlayersLocationGame{
 		Nickname:  "",
-		Status:    ds.RequestStatusDraft,
+		Status:    ds.GameStatusDraft,
 		CreatorID: creatorID,
 	}
 
 	err := r.db.Create(&request).Error
 	if err != nil {
-		return ds.PlayersLocationRequest{}, err
+		return ds.PlayersLocationGame{}, err
 	}
 
 	err = r.AddLocationToRequest(request.ID, locationID)
 	if err != nil {
-		return ds.PlayersLocationRequest{}, err
+		return ds.PlayersLocationGame{}, err
 	}
 
 	return request, nil
@@ -184,8 +184,8 @@ func (r *Repository) AddLocationToRequest(requestID, locationID uint) error {
 
 // DeleteRequest меняет статус заявки на "удалён"
 func (r *Repository) DeleteRequest(requestID uint) error {
-	var existingRequest ds.PlayersLocationRequest
-	err := r.db.Where("id = ? AND status != ?", requestID, ds.RequestStatusDeleted).First(&existingRequest).Error
+	var existingRequest ds.PlayersLocationGame
+	err := r.db.Where("id = ? AND status != ?", requestID, ds.GameStatusDeleted).First(&existingRequest).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
@@ -193,7 +193,7 @@ func (r *Repository) DeleteRequest(requestID uint) error {
 		return err
 	}
 
-	return r.db.Model(&existingRequest).Update("status", ds.RequestStatusDeleted).Error
+	return r.db.Model(&existingRequest).Update("status", ds.GameStatusDeleted).Error
 }
 
 // FormRequest формирует черновик заявки (переводит в статус "сформирован")
@@ -205,15 +205,15 @@ func (r *Repository) FormRequest(id uint) error {
 	if len(locations) == 0 {
 		return fmt.Errorf("заявка пуста")
 	}
-	newStatus := ds.RequestStatusFormed
+	newStatus := ds.GameStatusFormed
 	return r.UpdateRequestStatus(id, newStatus, nil)
 }
 
 // CompleteRequest завершает или отклоняет заявку
 func (r *Repository) CompleteRequest(id uint, approve bool) error {
-	status := ds.RequestStatusRejected
+	status := ds.GameStatusRejected
 	if approve {
-		status = ds.RequestStatusCompleted
+		status = ds.GameStatusCompleted
 	}
 
 	err := r.UpdateRequestStatus(id, status, nil)
@@ -221,7 +221,7 @@ func (r *Repository) CompleteRequest(id uint, approve bool) error {
 		return err
 	}
 
-	if approve && status == ds.RequestStatusCompleted {
+	if approve && status == ds.GameStatusCompleted {
 		err = r.chooseRandomLocationForRequest(id)
 		if err != nil {
 			return err

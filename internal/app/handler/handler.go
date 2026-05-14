@@ -34,18 +34,22 @@ func (h *Handler) RegisterAPI(router *gin.Engine) {
 			locations.POST("", h.CreateLocationAPI)
 		}
 
-		requests := api.Group("/requests")
+		games := api.Group("/games")
 		{
-			requests.GET("/cart", h.DraftRequestInfoAPI)
-			requests.GET("", h.GetRequestsAPI)
-			requests.GET("/:id", h.GetRequestAPI)
-			requests.PUT("/:id", h.UpdateRequestAPI)
-			requests.DELETE("/:id", h.DeleteRequestAPI)
-			requests.PUT("/:id/form", h.FormRequestAPI)
-			requests.PUT("/:id/complete", h.CompleteRequestAPI)
-			requests.POST("/locations/:locationId", h.AddLocationToRequestAPI)
-			requests.PUT("/:id/locations/:locationId", h.UpdateLocationPriorityAPI)
-			requests.DELETE("/:id/locations/:locationId", h.RemoveLocationFromRequestAPI)
+			games.GET("/cart", h.DraftGameInfoAPI)
+			games.GET("", h.GetGamesAPI)
+			games.GET("/:id", h.GetGameAPI)
+			games.PUT("/:id", h.UpdateGameAPI)
+			games.DELETE("/:id", h.DeleteGameAPI)
+			games.PUT("/:id/form", h.FormGameAPI)
+			games.PUT("/:id/complete", h.CompleteGameAPI)
+		}
+
+		gamloc := api.Group("/gamloc")
+		{
+			gamloc.POST("/locations/:locationId", h.AddLocationToGameAPI)
+			gamloc.PUT("/:id/locations/:locationId", h.UpdateLocationPriorityAPI)
+			gamloc.DELETE("/:id/locations/:locationId", h.RemoveLocationFromGameAPI)
 		}
 	}
 }

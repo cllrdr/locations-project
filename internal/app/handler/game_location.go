@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"locations-project/internal/app/ds"
+
+	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
@@ -28,7 +29,7 @@ func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
-	if request.Status != ds.RequestStatusDraft {
+	if request.Status != ds.GameStatusDraft {
 		h.errorHandler(ctx, http.StatusBadRequest, fmt.Errorf("заявка должна быть в статусе черновика"))
 		return
 	}
@@ -53,7 +54,7 @@ func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) RemoveLocationFromRequestAPI(ctx *gin.Context) {
+func (h *Handler) RemoveLocationFromGameAPI(ctx *gin.Context) {
 	requestIDStr := ctx.Param("id")
 	locationIDStr := ctx.Param("locationId")
 	requestID, err := strconv.ParseUint(requestIDStr, 10, 32)
@@ -72,7 +73,7 @@ func (h *Handler) RemoveLocationFromRequestAPI(ctx *gin.Context) {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
-	if request.Status != ds.RequestStatusDraft {
+	if request.Status != ds.GameStatusDraft {
 		h.errorHandler(ctx, http.StatusBadRequest, fmt.Errorf("заявка должна быть в статусе черновика"))
 		return
 	}

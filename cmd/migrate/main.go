@@ -19,7 +19,7 @@ func main() {
 	err = db.AutoMigrate(
 		&ds.User{},
 		&ds.Location{},
-		&ds.PlayersLocationRequest{},
+		&ds.PlayersLocationGame{},
 		&ds.PlayersChosenLocation{},
 	)
 	if err != nil {

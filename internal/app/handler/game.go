@@ -11,12 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) GetRequestsAPI(ctx *gin.Context) {
-	var status *ds.RequestStatus
+func (h *Handler) GetGamesAPI(ctx *gin.Context) {
+	var status *ds.GameStatus
 	var startDate, endDate *time.Time
 
 	if statusStr := ctx.Query("status"); statusStr != "" {
-		requestStatus := ds.RequestStatus(statusStr)
+		requestStatus := ds.GameStatus(statusStr)
 		status = &requestStatus
 	}
 
@@ -65,7 +65,7 @@ func (h *Handler) GetRequestsAPI(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, simplifiedRequests)
 }
 
-func (h *Handler) GetRequestAPI(ctx *gin.Context) {
+func (h *Handler) GetGameAPI(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -105,7 +105,7 @@ func (h *Handler) GetRequestAPI(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) UpdateRequestAPI(ctx *gin.Context) {
+func (h *Handler) UpdateGameAPI(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -113,7 +113,7 @@ func (h *Handler) UpdateRequestAPI(ctx *gin.Context) {
 		return
 	}
 
-	var request ds.PlayersLocationRequest
+	var request ds.PlayersLocationGame
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
@@ -146,7 +146,7 @@ func (h *Handler) UpdateRequestAPI(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) DeleteRequestAPI(ctx *gin.Context) {
+func (h *Handler) DeleteGameAPI(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -167,7 +167,7 @@ func (h *Handler) DeleteRequestAPI(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) DraftRequestInfoAPI(ctx *gin.Context) {
+func (h *Handler) DraftGameInfoAPI(ctx *gin.Context) {
 	draft, locations, err := h.Repository.GetDraftRequestInfo()
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -182,7 +182,7 @@ func (h *Handler) DraftRequestInfoAPI(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) FormRequestAPI(ctx *gin.Context) {
+func (h *Handler) FormGameAPI(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -200,7 +200,7 @@ func (h *Handler) FormRequestAPI(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) CompleteRequestAPI(ctx *gin.Context) {
+func (h *Handler) CompleteGameAPI(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -234,7 +234,7 @@ func (h *Handler) CompleteRequestAPI(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) AddLocationToRequestAPI(ctx *gin.Context) {
+func (h *Handler) AddLocationToGameAPI(ctx *gin.Context) {
 	locationIDStr := ctx.Param("locationId")
 	locationID, err := strconv.ParseUint(locationIDStr, 10, 32)
 	if err != nil {
@@ -245,7 +245,7 @@ func (h *Handler) AddLocationToRequestAPI(ctx *gin.Context) {
 	// Получаем черновик заявки текущего пользователя
 	draft, _, err := h.Repository.GetDraftRequestInfo()
 
-	var request ds.PlayersLocationRequest
+	var request ds.PlayersLocationGame
 
 	// Если черновика нет, создаём новую заявку с этой локацией
 	if err != nil {
@@ -266,7 +266,7 @@ func (h *Handler) AddLocationToRequestAPI(ctx *gin.Context) {
 	requestID := draft.ID
 
 	// Проверяем, что заявка в статусе черновика
-	if draft.Status != ds.RequestStatusDraft {
+	if draft.Status != ds.GameStatusDraft {
 		h.errorHandler(ctx, http.StatusBadRequest, fmt.Errorf("заявка должна быть в статусе черновика"))
 		return
 	}

@@ -50,6 +50,15 @@ func (h *Handler) GetGamesAPI(ctx *gin.Context) {
 			moderatorName = req.Moderator.Name
 		}
 
+		// Подсчитываем выбранные локации (is_randomed = true) только если статус завершён
+		selectedLocationsCount := 0
+		if req.Status == ds.GameStatusCompleted {
+			count, err := h.Repository.GetRandomedLocationsCount(req.ID)
+			if err == nil {
+				selectedLocationsCount = count
+			}
+		}
+
 		simplifiedRequests = append(simplifiedRequests, gin.H{
 			"id":             req.ID,
 			"nickname":       req.Nickname,
@@ -59,6 +68,7 @@ func (h *Handler) GetGamesAPI(ctx *gin.Context) {
 			"completed_at":   req.CompletedAt,
 			"creator_name":   creatorName,
 			"moderator_name": moderatorName,
+			"random_pool":    selectedLocationsCount,
 		})
 	}
 
@@ -91,6 +101,7 @@ func (h *Handler) GetGameAPI(ctx *gin.Context) {
 			"priority":       loc.Priority,
 			"location_name":  loc.Location.Name,
 			"location_image": loc.Location.ImagePath,
+			"is_randomed":    loc.IsRandomed,
 		})
 	}
 

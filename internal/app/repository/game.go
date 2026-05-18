@@ -336,3 +336,10 @@ func (r *Repository) UpdateLocationPriority(requestID, locationID uint, priority
 	}
 	return nil
 }
+
+// GetRandomedLocationsCount получает количество выбранных локаций (с is_randomed = true) для заявки
+func (r *Repository) GetRandomedLocationsCount(requestID uint) (int, error) {
+	var count int64
+	err := r.db.Where("request_id = ?", requestID).Model(&ds.PlayersChosenLocation{}).Count(&count).Error
+	return int(count), err
+}

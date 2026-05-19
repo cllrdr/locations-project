@@ -9,11 +9,13 @@ import (
 
 type Handler struct {
 	Repository *repository.Repository
+	Config     *config.Config
 }
 
-func NewHandler(r *repository.Repository) *Handler {
+func NewHandler(r *repository.Repository, cfg *config.Config) *Handler {
 	return &Handler{
 		Repository: r,
+		Config:     cfg,
 	}
 }
 

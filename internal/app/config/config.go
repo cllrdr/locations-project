@@ -11,6 +11,10 @@ import (
 type Config struct {
 	ServiceHost string
 	ServicePort int
+	JWTSecret   string
+	RedisAddr   string
+	RedisPassword string
+	RedisDB     int
 }
 
 func NewConfig() (*Config, error) {
@@ -23,24 +27,19 @@ func NewConfig() (*Config, error) {
 	}
 
 	viper.SetConfigName(configName)
-	viper.SetConfigType("toml")
-	viper.AddConfigPath("config")
 	viper.AddConfigPath(".")
-	viper.WatchConfig()
+	viper.AutomaticEnv()
 
-	err = viper.ReadInConfig()
-	if err != nil {
+	if err = viper.ReadInConfig(); err != nil {
 		return nil, err
 	}
 
-	cfg := &Config{}           // создаем объект конфига
-	err = viper.Unmarshal(cfg) // читаем информацию из файла,
-	// конвертируем и затем кладем в нашу переменную cfg
-	if err != nil {
+	var cfg Config
+	if err = viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
 	log.Info("config parsed")
 
-	return cfg, nil
+	return &cfg, nil
 }

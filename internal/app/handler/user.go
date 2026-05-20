@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -22,7 +23,7 @@ func (h *Handler) RegisterUserAPI(ctx *gin.Context) {
 		return
 	}
 
-	token, err := generateToken(createdUser.ID)
+	token, err := h.generateToken(createdUser.ID, createdUser.IsModerator)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -46,7 +47,7 @@ func (h *Handler) LoginAPI(ctx *gin.Context) {
 		return
 	}
 
-	token, err := generateToken(authenticatedUser.ID)
+	token, err := h.generateToken(authenticatedUser.ID, authenticatedUser.IsModerator)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return

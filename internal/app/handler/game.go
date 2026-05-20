@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
 	"locations-project/internal/app/ds"
 
 	"github.com/gin-gonic/gin"
@@ -50,7 +49,6 @@ func (h *Handler) GetGamesAPI(ctx *gin.Context) {
 			moderatorName = req.Moderator.Name
 		}
 
-		// Подсчитываем выбранные локации (is_randomed = true) только если статус завершён
 		selectedLocationsCount := 0
 		if req.Status == ds.GameStatusCompleted {
 			count, err := h.Repository.GetRandomedLocationsCount(req.ID)
@@ -60,15 +58,15 @@ func (h *Handler) GetGamesAPI(ctx *gin.Context) {
 		}
 
 		simplifiedRequests = append(simplifiedRequests, gin.H{
-			"id":             req.ID,
-			"nickname":       req.Nickname,
-			"status":         req.Status,
-			"created_at":     req.CreatedAt,
-			"formed_at":      req.FormedAt,
-			"completed_at":   req.CompletedAt,
-			"creator_name":   creatorName,
-			"moderator_name": moderatorName,
-			"random_pool":    selectedLocationsCount,
+			"id":              req.ID,
+			"nickname":        req.Nickname,
+			"status":          req.Status,
+			"created_at":      req.CreatedAt,
+			"formed_at":       req.FormedAt,
+			"completed_at":    req.CompletedAt,
+			"creator_name":    creatorName,
+			"moderator_name":  moderatorName,
+			"random_pool":     selectedLocationsCount,
 		})
 	}
 
@@ -90,6 +88,12 @@ func (h *Handler) GetGameAPI(ctx *gin.Context) {
 		} else {
 			h.errorHandler(ctx, http.StatusInternalServerError, err)
 		}
+		return
+	}
+
+	// 🔐 Проверка владения: модератор или создатель?
+	if !h.IsOwnerOrModerator(ctx, request.CreatorID) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 
@@ -130,14 +134,18 @@ func (h *Handler) UpdateGameAPI(ctx *gin.Context) {
 		return
 	}
 
-	// Получаем текущую заявку
 	currentRequest, err := h.Repository.GetRequest(uint(id))
 	if err != nil {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
 
-	// Обновляем только разрешённые поля (системные поля не меняются)
+	// 🔐 Проверка владения
+	if !h.IsOwnerOrModerator(ctx, currentRequest.CreatorID) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
 	currentRequest.Nickname = request.Nickname
 
 	err = h.Repository.UpdateRequest(uint(id), currentRequest)
@@ -150,11 +158,7 @@ func (h *Handler) UpdateGameAPI(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: Удалить этот блок для продакшена
-	ctx.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Заявка обновлена",
-	})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Заявка обновлена"})
 }
 
 func (h *Handler) DeleteGameAPI(ctx *gin.Context) {
@@ -165,21 +169,38 @@ func (h *Handler) DeleteGameAPI(ctx *gin.Context) {
 		return
 	}
 
+	// 🔐 Загружаем заявку ПЕРЕД удалением для проверки владения
+	request, err := h.Repository.GetRequest(uint(id))
+	if err != nil {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
+
+	// 🔐 Проверка владения
+	if !h.IsOwnerOrModerator(ctx, request.CreatorID) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
 	err = h.Repository.DeleteRequest(uint(id))
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// TODO: Удалить этот блок для продакшена
-	ctx.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Заявка удалена",
-	})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Заявка удалена"})
 }
 
 func (h *Handler) DraftGameInfoAPI(ctx *gin.Context) {
-	draft, locations, err := h.Repository.GetDraftRequestInfo()
+	// ✅ Берем ID текущего пользователя из контекста
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		h.errorHandler(ctx, http.StatusUnauthorized, fmt.Errorf("user id not found"))
+		return
+	}
+
+	// ✅ Передаем ID в репозиторий
+	draft, locations, err := h.Repository.GetDraftRequestInfo(userID.(uint))
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"draft_id":      0,
@@ -187,6 +208,7 @@ func (h *Handler) DraftGameInfoAPI(ctx *gin.Context) {
 		})
 		return
 	}
+	
 	ctx.JSON(http.StatusOK, gin.H{
 		"draft_id":      draft.ID,
 		"locations_cnt": len(locations),
@@ -200,18 +222,29 @@ func (h *Handler) FormGameAPI(ctx *gin.Context) {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
+
+	request, err := h.Repository.GetRequest(uint(id))
+	if err != nil {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
+
+	// 🔐 Проверка владения
+	if !h.IsOwnerOrModerator(ctx, request.CreatorID) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
 	if err := h.Repository.FormRequest(uint(id)); err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
-	// TODO: Удалить этот блок для продакшена
-	ctx.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Заявка сформирована",
-	})
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Заявка сформирована"})
 }
 
 func (h *Handler) CompleteGameAPI(ctx *gin.Context) {
+	// Этот эндпоинт защищён RequireModerator() в handler.go
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -238,11 +271,7 @@ func (h *Handler) CompleteGameAPI(ctx *gin.Context) {
 		message = "Заявка одобрена и обработана"
 	}
 
-	// TODO: Удалить этот блок для продакшена
-	ctx.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": message,
-	})
+	ctx.JSON(http.StatusOK, gin.H{"message": message})
 }
 
 func (h *Handler) AddLocationToGameAPI(ctx *gin.Context) {
@@ -253,14 +282,23 @@ func (h *Handler) AddLocationToGameAPI(ctx *gin.Context) {
 		return
 	}
 
-	// Получаем черновик заявки текущего пользователя
-	draft, _, err := h.Repository.GetDraftRequestInfo()
+	// ✅ Берем ID текущего пользователя из контекста
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		h.errorHandler(ctx, http.StatusUnauthorized, fmt.Errorf("user id not found"))
+		return
+	}
+	
+	currentUserID := userID.(uint)
 
+	// ✅ Передаем ID в репозиторий
+	draft, _, err := h.Repository.GetDraftRequestInfo(currentUserID)
 	var request ds.PlayersLocationGame
 
-	// Если черновика нет, создаём новую заявку с этой локацией
 	if err != nil {
-		request, err = h.Repository.CreateRequestWithLocation(uint(locationID))
+		// Черновика нет — создаём новую заявку (владелец = текущий пользователь)
+		// ✅ Передаем ID создателя в репозиторий
+		request, err = h.Repository.CreateRequestWithLocation(uint(locationID), currentUserID)
 		if err != nil {
 			h.errorHandler(ctx, http.StatusInternalServerError, err)
 			return
@@ -273,16 +311,20 @@ func (h *Handler) AddLocationToGameAPI(ctx *gin.Context) {
 		return
 	}
 
-	// Если черновик есть, добавляем локацию в существующую заявку
+	// Черновик есть — проверяем владение перед добавлением
+	// 🔐 Проверка: модератор или создатель черновика?
+	if !h.IsOwnerOrModerator(ctx, draft.CreatorID) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
 	requestID := draft.ID
 
-	// Проверяем, что заявка в статусе черновика
 	if draft.Status != ds.GameStatusDraft {
 		h.errorHandler(ctx, http.StatusBadRequest, fmt.Errorf("заявка должна быть в статусе черновика"))
 		return
 	}
 
-	// Добавляем локацию в заявку
 	if err := h.Repository.AddLocationToRequest(requestID, uint(locationID)); err != nil {
 		if err.Error() == "локация уже добавлена в заявку" {
 			h.errorHandler(ctx, http.StatusBadRequest, err)
@@ -293,7 +335,6 @@ func (h *Handler) AddLocationToGameAPI(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"status":     "success",
 		"message":    "Локация добавлена в заявку",
 		"request_id": requestID,
 	})

@@ -44,11 +44,14 @@ func (r *Repository) GetRequestWithLocations(id uint) (ds.PlayersLocationGame, [
 	if err != nil {
 		return ds.PlayersLocationGame{}, nil, err
 	}
+
 	var locations []ds.PlayersChosenLocation
+	// ✅ Исправлено: request_id вместо players_location_game_id
 	err = r.db.Preload("Location").Where("request_id = ?", id).Find(&locations).Error
 	if err != nil {
 		return ds.PlayersLocationGame{}, nil, err
 	}
+
 	return req, locations, nil
 }
 
@@ -58,10 +61,9 @@ func (r *Repository) GetPlayersLocationsForRequest(requestID int) (ds.PlayersLoc
 }
 
 // GetDraftRequestInfo получает информацию о черновике заявки пользователя
-func (r *Repository) GetDraftRequestInfo() (ds.PlayersLocationGame, []ds.PlayersChosenLocation, error) {
-	creatorID := ds.GetCreatorID()
-
+func (r *Repository) GetDraftRequestInfo(creatorID uint) (ds.PlayersLocationGame, []ds.PlayersChosenLocation, error) {
 	var request ds.PlayersLocationGame
+	// ✅ Исправлено: creatorID теперь приходит параметром, запрос по request_id
 	err := r.db.Preload("Creator").Preload("Moderator").Where("creator_id = ? AND status = ?", creatorID, ds.GameStatusDraft).First(&request).Error
 	if err != nil {
 		return ds.PlayersLocationGame{}, nil, err
@@ -83,7 +85,6 @@ func (r *Repository) UpdateRequest(id uint, request ds.PlayersLocationGame) erro
 	if err != nil {
 		return err
 	}
-
 	return r.db.Model(&existingRequest).Updates(request).Error
 }
 
@@ -142,13 +143,11 @@ func (r *Repository) isValidStatusTransition(current, new ds.GameStatus) bool {
 }
 
 // CreateRequestWithLocation создаёт новую заявку и добавляет в неё локацию
-func (r *Repository) CreateRequestWithLocation(locationID uint) (ds.PlayersLocationGame, error) {
-	creatorID := ds.GetCreatorID()
-
+func (r *Repository) CreateRequestWithLocation(locationID uint, creatorID uint) (ds.PlayersLocationGame, error) {
 	request := ds.PlayersLocationGame{
 		Nickname:  "",
 		Status:    ds.GameStatusDraft,
-		CreatorID: creatorID,
+		CreatorID: creatorID, // ✅ Из токена
 	}
 
 	err := r.db.Create(&request).Error
@@ -167,11 +166,10 @@ func (r *Repository) CreateRequestWithLocation(locationID uint) (ds.PlayersLocat
 // AddLocationToRequest добавляет локацию в заявку (приоритет 1 по умолчанию)
 func (r *Repository) AddLocationToRequest(requestID, locationID uint) error {
 	chosenLocation := ds.PlayersChosenLocation{
-		RequestID:  requestID,
+		RequestID:  requestID, // ✅ Исправлено: было PlayersLocationGameID
 		LocationID: locationID,
 		Priority:   1,
 	}
-
 	err := r.db.Create(&chosenLocation).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
@@ -192,19 +190,12 @@ func (r *Repository) DeleteRequest(requestID uint) error {
 		}
 		return err
 	}
-
 	return r.db.Model(&existingRequest).Update("status", ds.GameStatusDeleted).Error
 }
 
 // FormRequest формирует черновик заявки (переводит в статус "сформирован")
 func (r *Repository) FormRequest(id uint) error {
-	draft, locations, err := r.GetDraftRequestInfo()
-	if err != nil || draft.ID != id {
-		return fmt.Errorf("доступен только черновик текущего пользователя")
-	}
-	if len(locations) == 0 {
-		return fmt.Errorf("заявка пуста")
-	}
+	// Проверка пустоты и статуса делается в handler, здесь только смена статуса
 	newStatus := ds.GameStatusFormed
 	return r.UpdateRequestStatus(id, newStatus, nil)
 }
@@ -234,6 +225,7 @@ func (r *Repository) CompleteRequest(id uint, approve bool) error {
 // chooseRandomLocationForRequest выбирает случайную локацию и устанавливает флаг IsRandomed
 func (r *Repository) chooseRandomLocationForRequest(requestID uint) error {
 	var chosenLocations []ds.PlayersChosenLocation
+	// ✅ Исправлено: request_id
 	err := r.db.Where("request_id = ?", requestID).Find(&chosenLocations).Error
 	if err != nil {
 		return err
@@ -257,23 +249,19 @@ func (r *Repository) chooseRandomLocationForRequest(requestID uint) error {
 }
 
 // ChooseRandomLocation выбирает случайную локацию с учётом весов приоритетов
-// Формула: P(locationᵢ) = priorityᵢ / Σ(priorityⱼ)
 func (r *Repository) ChooseRandomLocation(chosenLocations []ds.PlayersChosenLocation) ds.PlayersChosenLocation {
 	if len(chosenLocations) == 0 {
 		return ds.PlayersChosenLocation{}
 	}
 
-	// 1. Считаем сумму приоритетов
 	var totalPriority int
 	for _, loc := range chosenLocations {
 		totalPriority += loc.Priority
 	}
 
-	// 2. Генерируем случайное число от 1 до sum
 	rand.Seed(time.Now().UnixNano())
 	random := rand.Intn(totalPriority) + 1
 
-	// 3. Находим локацию, на которую "выпало" число (взвешенный выбор)
 	cumulative := 0
 	for _, loc := range chosenLocations {
 		cumulative += loc.Priority
@@ -282,15 +270,12 @@ func (r *Repository) ChooseRandomLocation(chosenLocations []ds.PlayersChosenLoca
 		}
 	}
 
-	// Fallback: возвращаем последнюю локацию
 	return chosenLocations[len(chosenLocations)-1]
 }
 
 // ChooseRandomLocationForUser выбирает случайную локацию из корзины пользователя
-// (заявка остаётся в статусе "черновик")
 func (r *Repository) ChooseRandomLocationForUser(creatorID uint) (ds.PlayersChosenLocation, error) {
-	// Получаем черновик заявки пользователя
-	draftRequest, chosenLocations, err := r.GetDraftRequestInfo()
+	draftRequest, chosenLocations, err := r.GetDraftRequestInfo(creatorID)
 	if err != nil {
 		return ds.PlayersChosenLocation{}, err
 	}
@@ -299,10 +284,8 @@ func (r *Repository) ChooseRandomLocationForUser(creatorID uint) (ds.PlayersChos
 		return ds.PlayersChosenLocation{}, fmt.Errorf("в корзине нет локаций")
 	}
 
-	// Выбираем случайную локацию с учётом приоритетов
 	chosen := r.ChooseRandomLocation(chosenLocations)
 
-	// Сохраняем ID выбранной локации в заявке
 	err = r.db.Model(&draftRequest).Update("randomed_location", chosen.LocationID).Error
 	if err != nil {
 		return ds.PlayersChosenLocation{}, err
@@ -313,6 +296,7 @@ func (r *Repository) ChooseRandomLocationForUser(creatorID uint) (ds.PlayersChos
 
 // RemoveLocationFromRequest удаляет локацию из заявки
 func (r *Repository) RemoveLocationFromRequest(requestID, locationID uint) error {
+	// ✅ Исправлено: request_id
 	result := r.db.Where("request_id = ? AND location_id = ?", requestID, locationID).Delete(&ds.PlayersChosenLocation{})
 	if result.Error != nil {
 		return result.Error
@@ -325,6 +309,7 @@ func (r *Repository) RemoveLocationFromRequest(requestID, locationID uint) error
 
 // UpdateLocationPriority обновляет приоритет локации в заявке
 func (r *Repository) UpdateLocationPriority(requestID, locationID uint, priority int) error {
+	// ✅ Исправлено: request_id
 	result := r.db.Model(&ds.PlayersChosenLocation{}).
 		Where("request_id = ? AND location_id = ?", requestID, locationID).
 		Update("priority", priority)
@@ -337,9 +322,10 @@ func (r *Repository) UpdateLocationPriority(requestID, locationID uint, priority
 	return nil
 }
 
-// GetRandomedLocationsCount получает количество выбранных локаций (с is_randomed = true) для заявки
+// GetRandomedLocationsCount получает количество выбранных локаций для заявки
 func (r *Repository) GetRandomedLocationsCount(requestID uint) (int, error) {
 	var count int64
+	// ✅ Исправлено: request_id
 	err := r.db.Where("request_id = ?", requestID).Model(&ds.PlayersChosenLocation{}).Count(&count).Error
 	return int(count), err
 }

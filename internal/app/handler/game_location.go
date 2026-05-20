@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-
 	"locations-project/internal/app/ds"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +12,7 @@ import (
 func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
 	requestIDStr := ctx.Param("id")
 	locationIDStr := ctx.Param("locationId")
+
 	requestID, err := strconv.ParseUint(requestIDStr, 10, 32)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
@@ -29,6 +29,13 @@ func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
+
+	// 🔐 Проверка владения
+	if !h.IsOwnerOrModerator(ctx, request.CreatorID) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
 	if request.Status != ds.GameStatusDraft {
 		h.errorHandler(ctx, http.StatusBadRequest, fmt.Errorf("заявка должна быть в статусе черновика"))
 		return
@@ -47,7 +54,6 @@ func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: Удалить этот блок для продакшена
 	ctx.JSON(http.StatusOK, gin.H{
 		"status":  "success",
 		"message": "Приоритет обновлен",
@@ -57,6 +63,7 @@ func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
 func (h *Handler) RemoveLocationFromGameAPI(ctx *gin.Context) {
 	requestIDStr := ctx.Param("id")
 	locationIDStr := ctx.Param("locationId")
+
 	requestID, err := strconv.ParseUint(requestIDStr, 10, 32)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
@@ -73,6 +80,13 @@ func (h *Handler) RemoveLocationFromGameAPI(ctx *gin.Context) {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
+
+	// 🔐 Проверка владения
+	if !h.IsOwnerOrModerator(ctx, request.CreatorID) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
 	if request.Status != ds.GameStatusDraft {
 		h.errorHandler(ctx, http.StatusBadRequest, fmt.Errorf("заявка должна быть в статусе черновика"))
 		return
@@ -84,7 +98,6 @@ func (h *Handler) RemoveLocationFromGameAPI(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: Удалить этот блок для продакшена
 	ctx.JSON(http.StatusOK, gin.H{
 		"status":  "success",
 		"message": "Локация удалена из заявки",

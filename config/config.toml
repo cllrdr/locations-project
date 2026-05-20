@@ -1,5 +1,6 @@
-ServiceHost = "0.0.0.0"
-ServicePort = 8080
+# golang server
+service_host = "0.0.0.0"
+service_port = 8080
 
 # MinIO настройки (можно переопределить через переменные окружения)
 MinIOEndpoint = "localhost:9000"
@@ -7,3 +8,11 @@ MinIOAccessKey = "minio"
 MinIOSecretKey = "minio124"
 MinIOBucket = "locations"
 MinIOUseSSL = false
+
+# redis
+redis_addr = "localhost:6379"
+redis_password = ""
+redis_db = 0
+
+# JWT
+jwt_secret = "jwt_secret_key"

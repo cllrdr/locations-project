@@ -329,3 +329,24 @@ func (r *Repository) GetRandomedLocationsCount(requestID uint) (int, error) {
 	err := r.db.Where("request_id = ?", requestID).Model(&ds.PlayersChosenLocation{}).Count(&count).Error
 	return int(count), err
 }
+
+// GetRequestsByCreator получает заявки конкретного пользователя с фильтрацией
+func (r *Repository) GetRequestsByCreator(creatorID uint, status *ds.GameStatus, startDate, endDate *time.Time) ([]ds.PlayersLocationGame, error) {
+	var requests []ds.PlayersLocationGame
+	query := r.db.Where("creator_id = ? AND status != ? AND status != ?", creatorID, ds.GameStatusDeleted, ds.GameStatusDraft)
+
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+
+	if startDate != nil {
+		query = query.Where("formed_at >= ?", *startDate)
+	}
+
+	if endDate != nil {
+		query = query.Where("formed_at <= ?", *endDate)
+	}
+
+	err := query.Preload("Creator").Preload("Moderator").Find(&requests).Error
+	return requests, err
+}

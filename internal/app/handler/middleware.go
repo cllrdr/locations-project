@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gomodule/redigo/redis"
+	"locations-project/internal/app/ds"
 )
 
 // Claims структура для JWT payload
@@ -21,17 +22,15 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization header required"})
+			c.JSON(http.StatusUnauthorized, ds.ErrorResponse{
+				Error: "authorization header required",
+			})
 			c.Abort()
 			return
 		}
 
 		// Убираем префикс "Bearer " если есть
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenStr == authHeader {
-			// Если TrimPrefix ничего не изменил, значит префикса не было
-			// Это тоже валидный случай, просто берем токен как есть
-		}
 
 		// 1. Проверка блэклиста в Redis
 		conn, err := redis.Dial("tcp", h.Config.RedisAddr)
@@ -39,7 +38,9 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 			defer conn.Close()
 			isBlacklisted, _ := redis.String(conn.Do("GET", tokenStr))
 			if isBlacklisted == "blacklisted" {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "token revoked"})
+				c.JSON(http.StatusUnauthorized, ds.ErrorResponse{
+					Error: "token revoked",
+				})
 				c.Abort()
 				return
 			}
@@ -52,7 +53,9 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			c.JSON(http.StatusUnauthorized, ds.ErrorResponse{
+				Error: "invalid token",
+			})
 			c.Abort()
 			return
 		}
@@ -69,7 +72,9 @@ func RequireModerator() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		isModerator, exists := c.Get("is_moderator")
 		if !exists || isModerator != true {
-			c.JSON(http.StatusForbidden, gin.H{"error": "moderator access required"})
+			c.JSON(http.StatusForbidden, ds.ErrorResponse{
+				Error: "moderator access required",
+			})
 			c.Abort()
 			return
 		}
@@ -78,17 +83,16 @@ func RequireModerator() gin.HandlerFunc {
 }
 
 // IsOwnerOrModerator helper для проверки владения ресурсом
-// Возвращает true если пользователь модератор ИЛИ владелец ресурса
 func (h *Handler) IsOwnerOrModerator(c *gin.Context, resourceOwnerID uint) bool {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		return false
 	}
-	
+
 	isModerator, _ := c.Get("is_moderator")
 	if isModerator == true {
 		return true
 	}
-	
+
 	return userID == resourceOwnerID
 }

@@ -1,0 +1,783 @@
+basePath: /
+definitions:
+  ds.DraftInfoResponse:
+    properties:
+      draft_id:
+        type: integer
+      locations_cnt:
+        type: integer
+    type: object
+  ds.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  ds.GameResponse:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      creator_name:
+        type: string
+      formed_at:
+        type: string
+      id:
+        type: integer
+      locations:
+        items:
+          $ref: '#/definitions/ds.LocationResponse'
+        type: array
+      moderator_name:
+        type: string
+      nickname:
+        type: string
+      random_pool:
+        type: integer
+      status:
+        type: string
+    type: object
+  ds.GameStatus:
+    enum:
+    - черновик
+    - удалён
+    - сформирован
+    - завершён
+    - отклонён
+    type: string
+    x-enum-varnames:
+    - GameStatusDraft
+    - GameStatusDeleted
+    - GameStatusFormed
+    - GameStatusCompleted
+    - GameStatusRejected
+  ds.GamesListResponse:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      creator_name:
+        type: string
+      formed_at:
+        type: string
+      id:
+        type: integer
+      moderator_name:
+        type: string
+      nickname:
+        type: string
+      random_pool:
+        type: integer
+      status:
+        type: string
+    type: object
+  ds.Location:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image_path:
+        type: string
+      name:
+        type: string
+      players:
+        type: string
+      short_description:
+        type: string
+      video_path:
+        type: string
+    type: object
+  ds.LocationResponse:
+    properties:
+      id:
+        type: integer
+      is_randomed:
+        type: boolean
+      location_id:
+        type: integer
+      location_image:
+        type: string
+      location_name:
+        type: string
+      priority:
+        type: integer
+    type: object
+  ds.LoginRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        type: string
+    type: object
+  ds.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/ds.UserResponse'
+    type: object
+  ds.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  ds.PlayersLocationGame:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      creator:
+        $ref: '#/definitions/ds.User'
+      creator_id:
+        type: integer
+      formed_at:
+        type: string
+      id:
+        type: integer
+      moderator:
+        $ref: '#/definitions/ds.User'
+      moderator_id:
+        type: integer
+      nickname:
+        type: string
+      status:
+        $ref: '#/definitions/ds.GameStatus'
+    type: object
+  ds.RegisterRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      name:
+        example: Иван Петров
+        type: string
+      password:
+        example: password123
+        type: string
+    type: object
+  ds.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      is_moderator:
+        type: boolean
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  ds.UserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      is_moderator:
+        type: boolean
+      name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: REST API для управления локациями и игровыми заявками
+  title: Locations Project API
+  version: "1.0"
+paths:
+  /api/games:
+    get:
+      consumes:
+      - application/json
+      description: Модераторы видят все заявки, обычные пользователи — только свои
+      parameters:
+      - description: Фильтр по статусу
+        in: query
+        name: status
+        type: string
+      - description: Дата начала (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: Дата конца (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ds.GamesListResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Список заявок
+      tags:
+      - Games
+  /api/games/{id}:
+    delete:
+      description: Мягкое удаление (смена статуса на 'удалён'). Доступ владельцу или
+        модератору.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить заявку
+      tags:
+      - Games
+    get:
+      consumes:
+      - application/json
+      description: Возвращает детальную информацию о заявке с локациями. Доступ владельцу
+        или модератору.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.GameResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить заявку по ID
+      tags:
+      - Games
+    put:
+      consumes:
+      - application/json
+      description: Обновляет nickname заявки. Доступ владельцу или модератору.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ds.PlayersLocationGame'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить заявку
+      tags:
+      - Games
+  /api/games/{id}/complete:
+    put:
+      consumes:
+      - application/json
+      description: Доступно только модераторам. approve=true завершает, false отклоняет.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{\'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Завершить или отклонить заявку
+      tags:
+      - Games
+  /api/games/{id}/form:
+    put:
+      description: Переводит черновик в статус 'сформирован'. Доступ владельцу или
+        модератору.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Сформировать заявку
+      tags:
+      - Games
+  /api/games/cart:
+    get:
+      description: Возвращает ID черновика и количество локаций в нём.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.DraftInfoResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Информация о черновике
+      tags:
+      - Games
+  /api/gamloc/{id}/locations/{locationId}:
+    delete:
+      description: Удаляет локацию из черновика заявки. Доступ владельцу или модератору.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ID локации
+        in: path
+        name: locationId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить локацию из заявки
+      tags:
+      - GamLoc
+    put:
+      consumes:
+      - application/json
+      description: Изменяет приоритет локации в черновике заявки. Доступ владельцу
+        или модератору.
+      parameters:
+      - description: ID заявки
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ID локации
+        in: path
+        name: locationId
+        required: true
+        type: integer
+      - description: '{\'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить приоритет локации в заявке
+      tags:
+      - GamLoc
+  /api/gamloc/locations/{locationId}:
+    post:
+      description: Если черновика нет — создаёт новую заявку. Доступ владельцу или
+        модератору.
+      parameters:
+      - description: ID локации
+        in: path
+        name: locationId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ds.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Добавить локацию в заявку
+      tags:
+      - GamLoc
+  /api/locations:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает публичный список локаций с опциональной фильтрацией
+        по названию
+      parameters:
+      - description: Фильтр по названию локации
+        in: query
+        name: location
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ds.Location'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      summary: Список всех локаций
+      tags:
+      - Locations
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создаёт новую локацию с загрузкой изображения и видео в MinIO.
+        Доступно только модераторам.
+      parameters:
+      - description: Название локации
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Описание локации
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Количество игроков
+        in: formData
+        name: players
+        required: true
+        type: string
+      - description: Изображение локации
+        in: formData
+        name: image
+        type: file
+      - description: Видео локации
+        in: formData
+        name: video
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ds.Location'
+        "400":
+          description: Ошибка валидации или загрузки файлов
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "403":
+          description: Доступ запрещён
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать локацию
+      tags:
+      - Locations
+  /api/locations/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает детальную информацию о локации
+      parameters:
+      - description: ID локации
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.Location'
+        "400":
+          description: Некорректный ID
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "404":
+          description: Локация не найдена
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      summary: Получить локацию по ID
+      tags:
+      - Locations
+  /api/profile/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Email и пароль
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/ds.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная авторизация
+          schema:
+            $ref: '#/definitions/ds.LoginResponse'
+        "401":
+          description: Неверный email или пароль
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      summary: Вход в систему
+      tags:
+      - Profile
+  /api/profile/logout:
+    post:
+      parameters:
+      - description: Bearer <token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный выход
+          schema:
+            $ref: '#/definitions/ds.MessageResponse'
+        "401":
+          description: Нет токена или он невалидный
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Выход из аккаунта
+      tags:
+      - Profile
+  /api/profile/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/ds.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Успешная регистрация
+          schema:
+            $ref: '#/definitions/ds.LoginResponse'
+        "400":
+          description: Неверный формат запроса или пустые поля
+          schema:
+            $ref: '#/definitions/ds.ErrorResponse'
+      summary: Регистрация пользователя
+      tags:
+      - Profile
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

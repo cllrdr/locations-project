@@ -3,9 +3,9 @@ package handler
 import (
 	"locations-project/internal/app/config"
 	"locations-project/internal/app/repository"
+    "locations-project/internal/app/ds"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 type Handler struct {
@@ -43,7 +43,7 @@ func (h *Handler) RegisterAPI(router *gin.Engine) {
 		games := api.Group("/games")
 		{
 			games.GET("/cart", h.AuthMiddleware(), h.DraftGameInfoAPI)      // auth only
-			games.GET("", h.AuthMiddleware(), RequireModerator(), h.GetGamesAPI) // moderator only
+			games.GET("", h.AuthMiddleware(), h.GetGamesAPI) // auth + ownership/moderator
 			games.GET("/:id", h.AuthMiddleware(), h.GetGameAPI)             // auth + ownership/moderator
 			games.PUT("/:id", h.AuthMiddleware(), h.UpdateGameAPI)          // auth + ownership/moderator
 			games.DELETE("/:id", h.AuthMiddleware(), h.DeleteGameAPI)       // auth + ownership/moderator
@@ -61,17 +61,8 @@ func (h *Handler) RegisterAPI(router *gin.Engine) {
 	}
 }
 
-// RegisterStatic — регистрируем статику
-func (h *Handler) RegisterStatic(router *gin.Engine) {
-	router.LoadHTMLGlob("templates/")
-	router.Static("/static", "./resources")
-}
-
-// errorHandler — удобный вывод ошибок
 func (h *Handler) errorHandler(ctx *gin.Context, errorStatusCode int, err error) {
-	logrus.Error(err.Error())
-	ctx.JSON(errorStatusCode, gin.H{
-		"status":      "error",
-		"description": err.Error(),
+	ctx.JSON(errorStatusCode, ds.ErrorResponse{
+		Error: err.Error(),
 	})
 }

@@ -6,15 +6,23 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
 	"locations-project/internal/app/ds"
 
 	"github.com/gin-gonic/gin"
 )
 
+// GetLocationsAPI godoc
+// @Summary      Список всех локаций
+// @Description  Возвращает публичный список локаций с опциональной фильтрацией по названию
+// @Tags         Locations
+// @Accept       json
+// @Produce      json
+// @Param        location  query     string  false  "Фильтр по названию локации"
+// @Success      200       {array}   ds.Location
+// @Failure      500       {object}  ds.ErrorResponse
+// @Router       /api/locations [get]
 func (h *Handler) GetLocationsAPI(ctx *gin.Context) {
 	locationName := ctx.Query("location")
-
 	locations, err := h.Repository.GetLocations(locationName)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
@@ -24,6 +32,18 @@ func (h *Handler) GetLocationsAPI(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, locations)
 }
 
+// GetLocationAPI godoc
+// @Summary      Получить локацию по ID
+// @Description  Возвращает детальную информацию о локации
+// @Tags         Locations
+// @Accept       json
+// @Produce      json
+// @Param        id  path      int  true  "ID локации"
+// @Success      200   {object}  ds.Location
+// @Failure      400   {object}  ds.ErrorResponse "Некорректный ID"
+// @Failure      404   {object}  ds.ErrorResponse "Локация не найдена"
+// @Failure      500   {object}  ds.ErrorResponse "Ошибка сервера"
+// @Router       /api/locations/{id} [get]
 func (h *Handler) GetLocationAPI(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -45,6 +65,23 @@ func (h *Handler) GetLocationAPI(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, location)
 }
 
+// CreateLocationAPI godoc
+// @Summary      Создать локацию
+// @Description  Создаёт новую локацию с загрузкой изображения и видео в MinIO. Доступно только модераторам.
+// @Tags         Locations
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        name         formData  string  true  "Название локации"
+// @Param        description  formData  string  true  "Описание локации"
+// @Param        players      formData  string  true  "Количество игроков"
+// @Param        image        formData  file    false "Изображение локации"
+// @Param        video        formData  file    false "Видео локации"
+// @Success      201          {object}  ds.Location
+// @Failure      400          {object}  ds.ErrorResponse "Ошибка валидации или загрузки файлов"
+// @Failure      403          {object}  ds.ErrorResponse "Доступ запрещён"
+// @Failure      500          {object}  ds.ErrorResponse "Ошибка сервера"
+// @Security     BearerAuth
+// @Router       /api/locations [post]
 func (h *Handler) CreateLocationAPI(ctx *gin.Context) {
 	// Чтение полей из form-data
 	name := ctx.PostForm("name")

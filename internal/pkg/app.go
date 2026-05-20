@@ -1,26 +1,26 @@
 package pkg
 
 import (
-   "fmt"
+	"fmt"
 
-   "github.com/gin-gonic/gin"
-   "github.com/sirupsen/logrus"
-   "locations-project/internal/app/config"
-   "locations-project/internal/app/handler"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	"locations-project/internal/app/config"
+	"locations-project/internal/app/handler"
 )
 
 type Application struct {
-   Config  *config.Config
-   Router  *gin.Engine
-   Handler *handler.Handler
+	Config  *config.Config
+	Router  *gin.Engine
+	Handler *handler.Handler
 }
 
 func NewApp(c *config.Config, r *gin.Engine, h *handler.Handler) *Application {
-   return &Application{
-      Config:  c,
-      Router:  r,
-      Handler: h,
-   }
+	return &Application{
+		Config:  c,
+		Router:  r,
+		Handler: h,
+	}
 }
 
 func (a *Application) RunApp() {
@@ -28,9 +28,10 @@ func (a *Application) RunApp() {
 
 	a.Handler.RegisterAPI(a.Router)
 
-	serverAddress := fmt.Sprintf("%s:%d", a.Config.ServiceHost, a.Config.ServicePort)
-	if err := a.Router.Run(serverAddress); err != nil {
+	addr := fmt.Sprintf("%s:%d", a.Config.ServiceHost, a.Config.ServicePort)
+	if err := a.Router.Run(addr); err != nil {
 		logrus.Fatal(err)
 	}
+
 	logrus.Info("Server down")
 }

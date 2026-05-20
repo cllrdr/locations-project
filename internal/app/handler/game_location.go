@@ -9,6 +9,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// UpdateLocationPriorityAPI godoc
+// @Summary      Обновить приоритет локации в заявке
+// @Description  Изменяет приоритет локации в черновике заявки. Доступ владельцу или модератору.
+// @Tags         GamLoc
+// @Accept       json
+// @Produce      json
+// @Param        id          path      int     true  "ID заявки"
+// @Param        locationId  path      int     true  "ID локации"
+// @Param        body        body      object  true  "{\"priority\": 1}"
+// @Success      200         {object}  ds.MessageResponse
+// @Failure      400         {object}  ds.ErrorResponse
+// @Failure      403         {object}  ds.ErrorResponse
+// @Failure      404         {object}  ds.ErrorResponse
+// @Failure      500         {object}  ds.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/gamloc/{id}/locations/{locationId} [put]
 func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
 	requestIDStr := ctx.Param("id")
 	locationIDStr := ctx.Param("locationId")
@@ -32,7 +48,7 @@ func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
 
 	// 🔐 Проверка владения
 	if !h.IsOwnerOrModerator(ctx, request.CreatorID) {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		h.errorHandler(ctx, http.StatusForbidden, fmt.Errorf("access denied"))
 		return
 	}
 
@@ -54,12 +70,25 @@ func (h *Handler) UpdateLocationPriorityAPI(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Приоритет обновлен",
+	ctx.JSON(http.StatusOK, ds.MessageResponse{
+		Message: "Приоритет обновлен",
 	})
 }
 
+// RemoveLocationFromGameAPI godoc
+// @Summary      Удалить локацию из заявки
+// @Description  Удаляет локацию из черновика заявки. Доступ владельцу или модератору.
+// @Tags         GamLoc
+// @Produce      json
+// @Param        id          path      int  true  "ID заявки"
+// @Param        locationId  path      int  true  "ID локации"
+// @Success      200         {object}  ds.MessageResponse
+// @Failure      400         {object}  ds.ErrorResponse
+// @Failure      403         {object}  ds.ErrorResponse
+// @Failure      404         {object}  ds.ErrorResponse
+// @Failure      500         {object}  ds.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/gamloc/{id}/locations/{locationId} [delete]
 func (h *Handler) RemoveLocationFromGameAPI(ctx *gin.Context) {
 	requestIDStr := ctx.Param("id")
 	locationIDStr := ctx.Param("locationId")
@@ -83,7 +112,7 @@ func (h *Handler) RemoveLocationFromGameAPI(ctx *gin.Context) {
 
 	// 🔐 Проверка владения
 	if !h.IsOwnerOrModerator(ctx, request.CreatorID) {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		h.errorHandler(ctx, http.StatusForbidden, fmt.Errorf("access denied"))
 		return
 	}
 
@@ -98,8 +127,7 @@ func (h *Handler) RemoveLocationFromGameAPI(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Локация удалена из заявки",
+	ctx.JSON(http.StatusOK, ds.MessageResponse{
+		Message: "Локация удалена из заявки",
 	})
 }

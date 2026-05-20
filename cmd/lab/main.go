@@ -1,3 +1,11 @@
+// @title           Locations Project API
+// @version         1.0
+// @description     REST API для управления локациями и игровыми заявками
+// @host            localhost:8080
+// @BasePath        /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 package main
 
 import (
@@ -12,10 +20,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "locations-project/docs"
 )
 
 func main() {
 	router := gin.Default()
+
 	conf, err := config.NewConfig()
 	if err != nil {
 		logrus.Fatalf("error loading config: %v", err)
@@ -24,31 +38,31 @@ func main() {
 	postgresString := dsn.FromEnv()
 	fmt.Println(postgresString)
 
-	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
-	if minioEndpoint == "" {
-		minioEndpoint = "localhost:9000"
-	}
-	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
-	if minioAccessKey == "" {
-		minioAccessKey = "minio"
-	}
-	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
-	if minioSecretKey == "" {
-		minioSecretKey = "minio124"
-	}
-	bucketName := os.Getenv("MINIO_BUCKET")
-	if bucketName == "" {
-		bucketName = "locations"
-	}
+	// MinIO config (can be overridden via env)
+	minioEndpoint := getEnv("MINIO_ENDPOINT", "localhost:9000")
+	minioAccessKey := getEnv("MINIO_ACCESS_KEY", "minio")
+	minioSecretKey := getEnv("MINIO_SECRET_KEY", "minio124")
+	bucketName := getEnv("MINIO_BUCKET", "locations")
 	useSSL := os.Getenv("MINIO_USE_SSL") == "true"
 
-	rep, errRep := repository.New(postgresString, minioEndpoint, minioAccessKey, minioSecretKey, bucketName, useSSL)
-	if errRep != nil {
-		logrus.Fatalf("error initializing repository: %v", errRep)
+	rep, err := repository.New(postgresString, minioEndpoint, minioAccessKey, minioSecretKey, bucketName, useSSL)
+	if err != nil {
+		logrus.Fatalf("error initializing repository: %v", err)
 	}
 
 	hand := handler.NewHandler(rep, conf)
 
+	// Swagger UI
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Запускаем приложение (внутри будет вызван RegisterAPI)
 	application := pkg.NewApp(conf, router, hand)
 	application.RunApp()
+}
+
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }

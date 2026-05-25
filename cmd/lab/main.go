@@ -12,19 +12,17 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	swaggerFiles "github.com/swaggo/files"
+
+	_ "locations-project/docs"
 	"locations-project/internal/app/config"
 	"locations-project/internal/app/dsn"
 	"locations-project/internal/app/handler"
 	"locations-project/internal/app/repository"
 	"locations-project/internal/pkg"
-
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
-
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	_ "locations-project/docs"
 )
 
 func main() {
@@ -50,13 +48,18 @@ func main() {
 		logrus.Fatalf("error initializing repository: %v", err)
 	}
 
-	hand := handler.NewHandler(rep, conf)
+	// 1. Инициализируем пул соединений Redis
+	redisPool := pkg.NewRedisPool(conf.RedisAddr)
+	defer redisPool.Close()
 
-	// Swagger UI
+	// 2. Создаем хендлер, передавая ему пул
+	hand := handler.NewHandler(rep, conf, redisPool)
+
+	// 3. Подключаем Swagger UI
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Запускаем приложение (внутри будет вызван RegisterAPI)
-	application := pkg.NewApp(conf, router, hand)
+	// 4. Запускаем приложение
+	application := pkg.NewApp(conf, router, hand, redisPool)
 	application.RunApp()
 }
 

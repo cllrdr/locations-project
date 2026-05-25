@@ -3,11 +3,12 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
-	"locations-project/internal/app/ds"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gomodule/redigo/redis"
+	"github.com/golang-jwt/jwt/v5"
+	"locations-project/internal/app/ds"
 )
 
 // RegisterUserAPI godoc
@@ -16,8 +17,8 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        user  body      ds.RegisterRequest  true  "Данные для регистрации"
-// @Success      201   {object}  ds.LoginResponse	"Успешная регистрация"
-// @Failure      400   {object}  ds.ErrorResponse	"Неверный формат запроса или пустые поля"
+// @Success      201   {object}  ds.LoginResponse    "Успешная регистрация"
+// @Failure      400   {object}  ds.ErrorResponse    "Неверный формат запроса или пустые поля"
 // @Router       /api/profile/register [post]
 func (h *Handler) RegisterUserAPI(ctx *gin.Context) {
 	var req ds.RegisterRequest
@@ -63,8 +64,8 @@ func (h *Handler) RegisterUserAPI(ctx *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        user  body      ds.LoginRequest  true  "Email и пароль"
-// @Success      200   {object}  ds.LoginResponse	"Успешная авторизация"
-// @Failure      401   {object}  ds.ErrorResponse	"Неверный email или пароль"
+// @Success      200   {object}  ds.LoginResponse "Успешная авторизация"
+// @Failure      401   {object}  ds.ErrorResponse "Неверный email или пароль"
 // @Router       /api/profile/login [post]
 func (h *Handler) LoginAPI(ctx *gin.Context) {
 	var req ds.LoginRequest
@@ -102,33 +103,50 @@ func (h *Handler) LoginAPI(ctx *gin.Context) {
 // @Summary      Выход из аккаунта
 // @Tags         Profile
 // @Produce      json
-// @Param        Authorization  header  string  true  "Bearer <token>"
-// @Success      200  {object}  ds.MessageResponse	"Успешный выход"
-// @Failure      401  {object}  ds.ErrorResponse	"Нет токена или он невалидный"
-// @Failure      500  {object}  ds.ErrorResponse	"Ошибка сервера"
+// @Param        Authorization  header  string  true   "Bearer <token>"
+// @Success      200  {object}  ds.MessageResponse   "Успешный выход"
+// @Failure      401  {object}  ds.ErrorResponse     "Нет токена или он невалидный"
+// @Failure      500  {object}  ds.ErrorResponse     "Ошибка сервера"
 // @Security     BearerAuth
 // @Router       /api/profile/logout [post]
 func (h *Handler) LogoutAPI(ctx *gin.Context) {
-	tokenStr := ctx.GetHeader("Authorization")
-	if tokenStr == "" {
+	authHeader := ctx.GetHeader("Authorization")
+	
+	// ✅ ВАЖНО: Удаляем "Bearer " так же, как в middleware!
+	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+	
+	// ✅ Проверяем только на пустоту (не требуем обязательного "Bearer ")
+	if strings.TrimSpace(tokenStr) == "" {
 		h.errorHandler(ctx, http.StatusUnauthorized, fmt.Errorf("authorization header required"))
 		return
 	}
 
-	conn, err := redis.Dial("tcp", h.Config.RedisAddr)
-	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
-		return
-	}
+	// Берём соединение из пула (не создаём новое!)
+	conn := h.RedisPool.Get()
 	defer conn.Close()
 
-	_, err = conn.Do("SET", tokenStr, "blacklisted", "EX", int64(time.Hour*24))
-	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+	// Парсим токен только для получения времени истечения (exp)
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(h.Config.JWTSecret), nil
+	})
+
+	// Если токен уже невалиден — просто отвечаем 200 (клиент хочет выйти)
+	if err != nil || !token.Valid {
+		ctx.JSON(http.StatusOK, ds.MessageResponse{Message: "logged out"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, ds.MessageResponse{
-		Message: "logged out",
-	})
+	// ✅ Динамический TTL: сколько секунд осталось до истечения токена
+	ttl := time.Until(claims.ExpiresAt.Time)
+	if ttl > 0 {
+		// SET <token> "blacklisted" EX <seconds>
+		_, err := conn.Do("SET", tokenStr, "blacklisted", "EX", int64(ttl.Seconds()))
+		if err != nil {
+			// Логируем, но не роняем логаут
+			// logrus.WithError(err).Warn("failed to blacklist token")
+		}
+	}
+
+	ctx.JSON(http.StatusOK, ds.MessageResponse{Message: "logged out"})
 }

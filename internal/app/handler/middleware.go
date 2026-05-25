@@ -29,21 +29,29 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Убираем префикс "Bearer " если есть
+		// ✅ Убираем "Bearer " если он есть (поддерживаем оба формата)
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+		tokenStr = strings.TrimSpace(tokenStr)
 
-		// 1. Проверка блэклиста в Redis
-		conn, err := redis.Dial("tcp", h.Config.RedisAddr)
-		if err == nil {
-			defer conn.Close()
-			isBlacklisted, _ := redis.String(conn.Do("GET", tokenStr))
-			if isBlacklisted == "blacklisted" {
-				c.JSON(http.StatusUnauthorized, ds.ErrorResponse{
-					Error: "token revoked",
-				})
-				c.Abort()
-				return
-			}
+		if tokenStr == "" {
+			c.JSON(http.StatusUnauthorized, ds.ErrorResponse{
+				Error: "invalid authorization header format",
+			})
+			c.Abort()
+			return
+		}
+
+		// 1. Проверка блэклиста в Redis (используем пул соединений)
+		conn := h.RedisPool.Get()
+		defer conn.Close()
+
+		isBlacklisted, err := redis.String(conn.Do("GET", tokenStr))
+		if err == nil && isBlacklisted == "blacklisted" {
+			c.JSON(http.StatusUnauthorized, ds.ErrorResponse{
+				Error: "token revoked",
+			})
+			c.Abort()
+			return
 		}
 
 		// 2. Парсинг JWT
@@ -70,8 +78,16 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 // RequireModerator middleware для проверки роли модератора
 func RequireModerator() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		isModerator, exists := c.Get("is_moderator")
-		if !exists || isModerator != true {
+		val, exists := c.Get("is_moderator")
+		if !exists {
+			c.JSON(http.StatusForbidden, ds.ErrorResponse{
+				Error: "moderator access required",
+			})
+			c.Abort()
+			return
+		}
+		isModerator, ok := val.(bool)
+		if !ok || !isModerator {
 			c.JSON(http.StatusForbidden, ds.ErrorResponse{
 				Error: "moderator access required",
 			})
@@ -90,9 +106,13 @@ func (h *Handler) IsOwnerOrModerator(c *gin.Context, resourceOwnerID uint) bool 
 	}
 
 	isModerator, _ := c.Get("is_moderator")
-	if isModerator == true {
+	if isMod, ok := isModerator.(bool); ok && isMod {
 		return true
 	}
 
-	return userID == resourceOwnerID
+	if uid, ok := userID.(uint); ok && uid == resourceOwnerID {
+		return true
+	}
+
+	return false
 }
